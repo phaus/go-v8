@@ -52,6 +52,8 @@ using namespace v8;
 	HandleScope scope(isolate); \
 	Local<FunctionTemplate> local_template = Local<FunctionTemplate>::New(isolate, the_template->self) \
 
+#define PREV_CONTEXT_SLOT 1
+
 class V8_Context {
 public:
 	V8_Context(Isolate* isolate, Handle<Context> context) {
@@ -260,11 +262,11 @@ void V8_Context_Scope(void* context, void* context_ptr, void* callback) {
 	V8_Context* ctx = static_cast<V8_Context*>(context);
 	ISOLATE_SCOPE(ctx->GetIsolate());
 
-	void* prev_context = isolate->GetData();
+	void* prev_context = isolate->GetData(PREV_CONTEXT_SLOT);
 	scope_data data;
 	data.context = context;
 	data.context_ptr = context_ptr;
-	isolate->SetData(&data);
+	isolate->SetData(PREV_CONTEXT_SLOT, &data);
 
 	// Make nested context scropt use the outermost HandleScope
 	if (prev_context == NULL) {
@@ -277,21 +279,21 @@ void V8_Context_Scope(void* context, void* context_ptr, void* callback) {
 		context_scope_callback(context_ptr, callback);
 	}
 
-	isolate->SetData(prev_context);
+	isolate->SetData(PREV_CONTEXT_SLOT, prev_context);
 }
 
 V8_Context* V8_Current_Context(Isolate* isolate) {
-	void* data = isolate->GetData();
+	void* data = isolate->GetData(PREV_CONTEXT_SLOT);
 	if (data == NULL)
 		v8_panic((char*)"Please call this API in a context scope");
-	return static_cast<V8_Context*>(static_cast<scope_data*>(isolate->GetData())->context);
+	return static_cast<V8_Context*>(static_cast<scope_data*>(isolate->GetData(PREV_CONTEXT_SLOT))->context);
 }
 
 void* V8_Current_ContextPtr(Isolate* isolate) {
-	void* data = isolate->GetData();
+	void* data = isolate->GetData(PREV_CONTEXT_SLOT);
 	if (data == NULL)
 		v8_panic((char*)"Please call this API in a context scope");
-	return static_cast<scope_data*>(isolate->GetData())->context_ptr;
+	return static_cast<scope_data*>(isolate->GetData(PREV_CONTEXT_SLOT))->context_ptr;
 }
 
 void* V8_Context_Global(void* context) {
@@ -878,13 +880,13 @@ void V8_AccessorSetterCallback(Local<String> property, Local<Value> value, const
 void V8_Object_SetAccessor(void *value, const char* key, int key_length, void* getter, void* setter, void* data, int attribs) {
 	VALUE_SCOPE(value);
 
-	Handle<Array> callback_info = Array::New(OTA_Num);
-	callback_info->Set(OTA_Context, External::New((void*)the_value->context));
-	callback_info->Set(OTA_Getter, External::New(getter));
-	callback_info->Set(OTA_Setter, External::New(setter));
-	callback_info->Set(OTA_KeyString, External::New((void*)key));
+	Handle<Array> callback_info = Array::New(isolate, OTA_Num);
+	callback_info->Set(OTA_Context, External::New(isolate, (void*)the_value->context));
+	callback_info->Set(OTA_Getter, External::New(isolate, getter));
+	callback_info->Set(OTA_Setter, External::New(isolate, setter));
+	callback_info->Set(OTA_KeyString, External::New(isolate, (void*)key));
 	callback_info->Set(OTA_KeyLength, Integer::New(key_length));
-	callback_info->Set(OTA_Data, External::New(data));
+	callback_info->Set(OTA_Data, External::New(isolate, data));
 
 	if (callback_info.IsEmpty())
 		return;
@@ -1027,7 +1029,7 @@ array
 */
 void* V8_NewArray(void* context, int length) {
 	CONTEXT_SCOPE(context);
-	return new_V8_Value(the_context, Array::New(length));
+	return new_V8_Value(the_context, Array::New(isolate, length));
 }
 
 int V8_Array_Length(void* value) {
@@ -1246,13 +1248,13 @@ void* V8_ObjectTemplate_NewObject(void* tpl) {
 void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, void* getter, void* setter, void* data, int attribs) {
 	OBJECT_TEMPLATE_HANDLE_SCOPE(tpl);
 
-	Handle<Array> callback_info = Array::New(5);
-	callback_info->Set(0, External::New((void*)the_template->engine));
-	callback_info->Set(1, External::New(getter));
-	callback_info->Set(2, External::New(setter));
-	callback_info->Set(3, External::New((void*)key));
+	Handle<Array> callback_info = Array::New(isolate, 5);
+	callback_info->Set(0, External::New(isolate, (void*)the_template->engine));
+	callback_info->Set(1, External::New(isolate, getter));
+	callback_info->Set(2, External::New(isolate, setter));
+	callback_info->Set(3, External::New(isolate, (void*)key));
 	callback_info->Set(4, Integer::New(key_length));
-	callback_info->Set(5, External::New(data));
+	callback_info->Set(5, External::New(isolate, data));
 
 	if (callback_info.IsEmpty())
 		return;
@@ -1338,14 +1340,14 @@ void V8_ObjectTemplate_SetNamedPropertyHandler(
 ) {
 	OBJECT_TEMPLATE_HANDLE_SCOPE(tpl);
 
-	Handle<Array> callback_info = Array::New(OTP_Num);
-	callback_info->Set(OTP_Context, External::New((void*)the_template->engine));
-	callback_info->Set(OTP_Getter, External::New(getter));
-	callback_info->Set(OTP_Setter, External::New(setter));
-	callback_info->Set(OTP_Query, External::New(query));
-	callback_info->Set(OTP_Deleter, External::New(deleter));
-	callback_info->Set(OTP_Enumerator, External::New(enumerator));
-	callback_info->Set(OTP_Data, External::New(data));
+	Handle<Array> callback_info = Array::New(isolate, OTP_Num);
+	callback_info->Set(OTP_Context, External::New(isolate, (void*)the_template->engine));
+	callback_info->Set(OTP_Getter, External::New(isolate, getter));
+	callback_info->Set(OTP_Setter, External::New(isolate, setter));
+	callback_info->Set(OTP_Query, External::New(isolate, query));
+	callback_info->Set(OTP_Deleter, External::New(isolate, deleter));
+	callback_info->Set(OTP_Enumerator, External::New(isolate, enumerator));
+	callback_info->Set(OTP_Data, External::New(isolate, data));
 
 	if (callback_info.IsEmpty())
 		return;
@@ -1425,14 +1427,14 @@ void V8_ObjectTemplate_SetIndexedPropertyHandler(
 ) {
 	OBJECT_TEMPLATE_HANDLE_SCOPE(tpl);
 	
-	Handle<Array> callback_info = Array::New(OTP_Num);
-	callback_info->Set(OTP_Context, External::New((void*)the_template->engine));
-	callback_info->Set(OTP_Getter, External::New(getter));
-	callback_info->Set(OTP_Setter, External::New(setter));
-	callback_info->Set(OTP_Query, External::New(query));
-	callback_info->Set(OTP_Deleter, External::New(deleter));
-	callback_info->Set(OTP_Enumerator, External::New(enumerator));
-	callback_info->Set(OTP_Data, External::New(data));
+	Handle<Array> callback_info = Array::New(isolate, OTP_Num);
+	callback_info->Set(OTP_Context, External::New(isolate, (void*)the_template->engine));
+	callback_info->Set(OTP_Getter, External::New(isolate, getter));
+	callback_info->Set(OTP_Setter, External::New(isolate, setter));
+	callback_info->Set(OTP_Query, External::New(isolate, query));
+	callback_info->Set(OTP_Deleter, External::New(isolate, deleter));
+	callback_info->Set(OTP_Enumerator, External::New(isolate, enumerator));
+	callback_info->Set(OTP_Data, External::New(isolate, data));
 
 	if (callback_info.IsEmpty())
 		return;
@@ -1456,13 +1458,13 @@ void* V8_NewFunctionTemplate(void* engine, void* callback) {
 
 	HandleScope scope(isolate);
 
-	Handle<Array> callback_data = Array::New(2);
+	Handle<Array> callback_data = Array::New(isolate, 2);
 
 	if (callback_data.IsEmpty())
 		return NULL;
 
-	callback_data->Set(0, External::New(engine));
-	callback_data->Set(1, External::New(callback));
+	callback_data->Set(0, External::New(isolate, engine));
+	callback_data->Set(1, External::New(isolate, callback));
 
 	Handle<FunctionTemplate> tpl = callback == NULL ? FunctionTemplate::New() : FunctionTemplate::New(
 		V8_FunctionCallback, callback_data
@@ -1575,16 +1577,20 @@ void V8_MessageCallback(Handle< Message > message, Handle< Value > error) {
 	go_message_callback((void*)cmessage, callback, data);
 }
 
-void V8_AddMessageListener(void* callback, void* data, int simple) {
+void V8_AddMessageListener(void* context, void* callback, void* data, int simple) {
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+
 	if(callback == NULL) {
 		V8::RemoveMessageListeners(V8_MessageCallback);
 		return;
 	}
 
-	Handle<Array> args = Array::New(3);
-	args->Set(0, External::New(callback));
-	args->Set(1, External::New(data));
-	args->Set(2, Boolean::New(simple));
+	Handle<Array> args = Array::New(isolate, 3);
+	args->Set(0, External::New(isolate, callback));
+	args->Set(1, External::New(isolate, data));
+	args->Set(2, Boolean::New(isolate, simple));
+
 	V8::AddMessageListener(V8_MessageCallback, args);
 }
 

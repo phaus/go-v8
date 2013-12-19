@@ -97,10 +97,8 @@ func (cs ContextScope) AddMessageListener(simple bool, callback MessageCallback,
 	if callback != nil {
 		callbackPointer = unsafe.Pointer(&callback)
 	}
-	C.V8_AddMessageListener(
-		callbackPointer,
-		unsafe.Pointer(&data),
-		C.int(goSimple))
+
+	C.V8_AddMessageListener(cs.context.self, callbackPointer, unsafe.Pointer(&data), C.int(goSimple))
 }
 
 //export go_message_callback
