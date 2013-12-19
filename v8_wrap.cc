@@ -271,7 +271,6 @@ void V8_Context_Scope(void* context, void* context_ptr, void* callback) {
 	// Make nested context scropt use the outermost HandleScope
 	if (prev_context == NULL) {
 		HandleScope handle_scope(isolate);
-
 		Context::Scope scope(Local<Context>::New(isolate, ctx->self));
 		context_scope_callback(context_ptr, callback);
 	} else {
@@ -698,6 +697,24 @@ void* V8_NewObject(void* context) {
 	CONTEXT_SCOPE(context);
 
 	return new_V8_Value(the_context, Object::New());
+}
+
+int V8_Object_InternalFieldCount(void* value) {
+	VALUE_SCOPE(value);
+	return Local<Object>::Cast(local_value)->InternalFieldCount();
+}
+
+void* V8_Object_GetInternalField(void* value, int index) {
+	VALUE_SCOPE(value);
+	Local<Object> obj = Local<Object>::Cast(local_value);
+	Local<Value> data = obj->GetInternalField(index);
+	return Local<External>::Cast(data)->Value();
+}
+
+void V8_Object_SetInternalField(void* value, int index, void* data) {
+	VALUE_SCOPE(value);
+	Local<Object> obj = Local<Object>::Cast(local_value);
+	obj->SetInternalField(index, External::New(isolate, data));
 }
 
 int V8_Object_SetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {
@@ -1143,10 +1160,11 @@ void V8_FunctionCallback(const v8::FunctionCallbackInfo<Value>& info) {
 	callback_info.returnValue = NULL;
 
 	void* callback = Local<External>::Cast(callback_data->Get(1))->Value();
+	void* data = Local<External>::Cast(callback_data->Get(2))->Value();
 
 	void* context_ptr = V8_Current_ContextPtr(isolate);
 
-	go_function_callback(&callback_info, callback, context_ptr);
+	go_function_callback(&callback_info, callback, context_ptr, data);
 
 	if (callback_info.returnValue != NULL)
 		delete callback_info.returnValue;
@@ -1449,22 +1467,28 @@ void V8_ObjectTemplate_SetIndexedPropertyHandler(
 	);
 }
 
+void V8_ObjectTemplate_SetInternalFieldCount(void* tpl, int count) {
+	OBJECT_TEMPLATE_HANDLE_SCOPE(tpl);
+	local_template->SetInternalFieldCount(count);
+}
+
 
 /*
 function template
 */
-void* V8_NewFunctionTemplate(void* engine, void* callback) {
+void* V8_NewFunctionTemplate(void* engine, void* callback, void* data) {
 	ENGINE_SCOPE(engine);
 
 	HandleScope scope(isolate);
 
-	Handle<Array> callback_data = Array::New(isolate, 2);
+	Handle<Array> callback_data = Array::New(isolate, 3);
 
 	if (callback_data.IsEmpty())
 		return NULL;
 
 	callback_data->Set(0, External::New(isolate, engine));
 	callback_data->Set(1, External::New(isolate, callback));
+	callback_data->Set(2, External::New(isolate, data));
 
 	Handle<FunctionTemplate> tpl = callback == NULL ? FunctionTemplate::New() : FunctionTemplate::New(
 		V8_FunctionCallback, callback_data
