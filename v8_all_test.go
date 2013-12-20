@@ -880,7 +880,7 @@ func Test_Context(t *testing.T) {
 
 func Test_UnderscoreJS(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
-		code, err := ioutil.ReadFile("labs/underscore.js")
+		code, err := ioutil.ReadFile("underscore.js")
 
 		if err != nil {
 			return

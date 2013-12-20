@@ -65,17 +65,18 @@ if [ libv8_base == '' ] || [ libv8_snapshot == '' ]; then
 	exit
 fi
 
-# build
+# for linux
 librt=''
 if [ `go env | grep GOHOSTOS` == 'GOHOSTOS="linux"' ]; then
 	librt='-lrt'
 fi
-CGO_LDFLAGS="$libv8_base $libv8_snapshot $librt" \
-CGO_CFLAGS="-I $v8_path/include" \
-CGO_CXXFLAGS="-I $v8_path/include" \
-go install -x 
 
-# test
-./test.sh . .
+echo "Name: v8
+Description: v8 javascript engine
+Version: $v8_version
+Cflags: -I`pwd`/$v8_path/include
+Libs: `pwd`/$libv8_base `pwd`/$libv8_snapshot $librt" > v8.pc
 
-echo "done"
+go install
+
+go test -v -bench="."
