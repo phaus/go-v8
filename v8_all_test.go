@@ -1248,7 +1248,7 @@ func Benchmark_NewArray100(b *testing.B) {
 
 func Benchmark_Compile(b *testing.B) {
 	b.StopTimer()
-	code, err := ioutil.ReadFile("labs/underscore.js")
+	code, err := ioutil.ReadFile("underscore.js")
 	if err != nil {
 		return
 	}
@@ -1265,7 +1265,7 @@ func Benchmark_Compile(b *testing.B) {
 
 func Benchmark_PreCompile(b *testing.B) {
 	b.StopTimer()
-	code, err := ioutil.ReadFile("labs/underscore.js")
+	code, err := ioutil.ReadFile("underscore.js")
 	if err != nil {
 		return
 	}
