@@ -1,6 +1,6 @@
 #!/bin/bash
 
-v8_version="3.24.4"
+v8_version="3.24.5"
 v8_path="v8-$v8_version"
 
 # check again
