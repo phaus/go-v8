@@ -79,4 +79,4 @@ Libs: `pwd`/$libv8_base `pwd`/$libv8_snapshot $librt" > v8.pc
 
 go install
 
-go test -v -bench="."
+go test -bench="."
