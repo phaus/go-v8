@@ -1,4 +1,4 @@
-Go-V8
+v8.go
 =====
 
 V8 JavaScript engine bindings for Go.
@@ -24,23 +24,23 @@ Install
 
 For 'curl' user. please run this shell command:
 
-> curl -O https://raw.github.com/idada/go-v8/master/get.sh && chmod +x get.sh && ./get.sh go-v8
+> curl -O https://raw.github.com/idada/v8.go/master/get.sh && chmod +x get.sh && ./get.sh v8.go
 
 For 'wget' user. Please run this shell command:
 
-> wget https://raw.github.com/idada/go-v8/master/get.sh && chmod +x get.sh && ./get.sh go-v8
+> wget https://raw.github.com/idada/v8.go/master/get.sh && chmod +x get.sh && ./get.sh v8.go
 
 Note: require Go version 1.2 and Git.
 
 Hello World
 ===========
 
-This 'Hello World' program shows how to use go-v8 to compile and run JavaScript code then get the result.
+This 'Hello World' program shows how to use v8.go to compile and run JavaScript code then get the result.
 
 ```go
 package main
 
-import "github.com/idada/go-v8"
+import "github.com/idada/v8.go"
 
 func main() {
 	engine := v8.NewEngine()
@@ -78,7 +78,7 @@ Setter           2934 ns/op
 TryCatch        43097 ns/op
 ```
 
-I write many test and benchmark to make sure go-v8 stable and efficient.
+I write many test and benchmark to make sure v8.go stable and efficient.
 
 There is a shell script named 'test.sh' in the project. 
 
@@ -108,9 +108,9 @@ Concepts
 Engine
 ------
 
-In go-v8, engine type is the wrapper of v8::Isolate.
+In v8.go, engine type is the wrapper of v8::Isolate.
 
-Because V8 engine use thread-local storage but cgo calls may be execute in different thread. So go-v8 use v8::Locker to make sure V8 engine's thread-local data initialized. And the locker make go-v8 thread safe.
+Because V8 engine use thread-local storage but cgo calls may be execute in different thread. So v8.go use v8::Locker to make sure V8 engine's thread-local data initialized. And the locker make v8.go thread safe.
 
 You can create different engine instance for data isolate or improve efficiency of concurrent purpose.
 
@@ -160,7 +160,7 @@ The description in V8 embedding guide:
 
 > In V8, a context is an execution environment that allows separate, unrelated, JavaScript applications to run in a single instance of V8. You must explicitly specify the context in which you want any JavaScript code to be run.
 
-In go-v8, you can create many contexts from a V8 engine instance. When you want to run some JavaScript in a context. You need to enter the context by calling Scope() and run the JavaScript in the callback.
+In v8.go, you can create many contexts from a V8 engine instance. When you want to run some JavaScript in a context. You need to enter the context by calling Scope() and run the JavaScript in the callback.
 
 ```go
 context.Scope(func(cs v8.ContextScope){
@@ -168,7 +168,7 @@ context.Scope(func(cs v8.ContextScope){
 })
 ```
 
-Context in V8 is necessary. So in go-v8 you can do this:
+Context in V8 is necessary. So in v8.go you can do this:
 
 ```go
 context.Scope(func(cs v8.ContextScope) {
@@ -215,23 +215,23 @@ V8引擎的Go语言绑定。
 
 'curl'用户请运行以下脚本：
 
-> curl -O https://raw.github.com/idada/go-v8/master/get.sh && chmod +x get.sh && ./get.sh go-v8
+> curl -O https://raw.github.com/idada/v8.go/master/get.sh && chmod +x get.sh && ./get.sh v8.go
 
 'wget'用户请运行以下脚本：
 
-> wget https://raw.github.com/idada/go-v8/master/get.sh && chmod +x get.sh && ./get.sh go-v8
+> wget https://raw.github.com/idada/v8.go/master/get.sh && chmod +x get.sh && ./get.sh v8.go
 
 需求本地安装有Go 1.2和git命令。
 
 Hello World
 ===========
 
-以下是一段Hello World程序，用来展示go-v8如何编译和运行JavaScript并获得结果：
+以下是一段Hello World程序，用来展示v8.go如何编译和运行JavaScript并获得结果：
 
 ```go
 package main
 
-import "github.com/idada/go-v8"
+import "github.com/idada/v8.go"
 
 func main() {
 	engine := v8.NewEngine()
@@ -269,9 +269,9 @@ Setter           2934 ns/op
 TryCatch        43097 ns/op
 ```
 
-我写了很多的单元测试和基准测试用来确定go-v8是否稳定和高效。
+我写了很多的单元测试和基准测试用来确定v8.go是否稳定和高效。
 
-项目根目录下有一个叫'text.sh'的shell脚本。这个脚本可以自动配置CGO的环境变量并运行go-v8的测试。
+项目根目录下有一个叫'text.sh'的shell脚本。这个脚本可以自动配置CGO的环境变量并运行v8.go的测试。
 
 举个例子:
 
@@ -297,9 +297,9 @@ test.sh的第一个参数是单元测试的名称匹配模式，第二个参数�
 Engine
 ------
 
-在go-v8中，Engine类型是对象v8::Isolate的封装。
+在v8.go中，Engine类型是对象v8::Isolate的封装。
 
-因为V8引擎使用线程相关的存储机制用来优化性能，但是CGO调用可能会在不同的线程里执行。所以go-v8使用v8::Locker来确定V8引擎的线程数据有初始化，并确保go-v8是线程安全的。
+因为V8引擎使用线程相关的存储机制用来优化性能，但是CGO调用可能会在不同的线程里执行。所以v8.go使用v8::Locker来确定V8引擎的线程数据有初始化，并确保v8.go是线程安全的。
 
 你可以创建多个引擎实例用来隔离数据和优化并发效率。
 
@@ -349,7 +349,7 @@ V8嵌入指南中的解释:
 
 > In V8, a context is an execution environment that allows separate, unrelated, JavaScript applications to run in a single instance of V8. You must explicitly specify the context in which you want any JavaScript code to be run.
 
-在go-v8中，你可以从一个Engine实例中创建多个上下文。当你需要在某个上下文中运行一段JavaScript时，你需要调用Context.Scope()方法进入这个上下文，然后在回调函数中运行JavaScript。
+在v8.go中，你可以从一个Engine实例中创建多个上下文。当你需要在某个上下文中运行一段JavaScript时，你需要调用Context.Scope()方法进入这个上下文，然后在回调函数中运行JavaScript。
 
 ```go
 context.Scope(func(cs v8.ContextScope){
@@ -357,7 +357,7 @@ context.Scope(func(cs v8.ContextScope){
 })
 ```
 
-上下文在V8中是可以嵌套的。所以go-v8中你可以这样做：
+上下文在V8中是可以嵌套的。所以v8.go中你可以这样做：
 
 ```go
 context.Scope(func(cs v8.ContextScope) {
