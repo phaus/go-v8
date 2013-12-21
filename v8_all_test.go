@@ -98,7 +98,7 @@ func Test_Allocator(t *testing.T) {
 func Test_MessageListener(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		cs.AddMessageListener(true, func(message string, data interface{}) {
-			println("golang", message)
+			t.Log("MessageListener(1): %s", message)
 		}, nil)
 		script := engine.Compile([]byte(`var test[ = ;`), nil, nil)
 		if script != nil {
@@ -107,7 +107,7 @@ func Test_MessageListener(t *testing.T) {
 
 		SetCaptureStackTraceForUncaughtExceptions(true, 1)
 		cs.AddMessageListener(false, func(message string, data interface{}) {
-			println("golang2", message)
+			t.Log("MessageListener(2): %s", message)
 		}, nil)
 		script = engine.Compile([]byte(`var test] = ;`), nil, nil)
 		if script != nil {
@@ -122,7 +122,7 @@ func Test_MessageListener(t *testing.T) {
 			}
 		})
 		if exception != "" {
-			println("exception:", exception)
+			t.Log("Exception: %s", exception)
 		}
 	})
 }
@@ -843,7 +843,7 @@ func Test_Context(t *testing.T) {
 
 	functionTemplate := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
 		for i := 0; i < info.Length(); i++ {
-			println(info.Get(i).ToString())
+			t.Log(info.Get(i).ToString())
 		}
 	}, nil)
 
@@ -880,7 +880,7 @@ func Test_Context(t *testing.T) {
 
 func Test_UnderscoreJS(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
-		code, err := ioutil.ReadFile("underscore.js")
+		code, err := ioutil.ReadFile("samples/underscore.js")
 
 		if err != nil {
 			return
@@ -1248,7 +1248,7 @@ func Benchmark_NewArray100(b *testing.B) {
 
 func Benchmark_Compile(b *testing.B) {
 	b.StopTimer()
-	code, err := ioutil.ReadFile("underscore.js")
+	code, err := ioutil.ReadFile("samples/underscore.js")
 	if err != nil {
 		return
 	}
@@ -1265,7 +1265,7 @@ func Benchmark_Compile(b *testing.B) {
 
 func Benchmark_PreCompile(b *testing.B) {
 	b.StopTimer()
-	code, err := ioutil.ReadFile("underscore.js")
+	code, err := ioutil.ReadFile("samples/underscore.js")
 	if err != nil {
 		return
 	}
