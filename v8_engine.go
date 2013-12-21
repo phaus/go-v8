@@ -1,7 +1,7 @@
 package v8
 
 /*
-#cgo pkg-config: v8
+#cgo pkg-config: v8.pc
 #include "v8_wrap.h"
 #include <stdlib.h>
 */
