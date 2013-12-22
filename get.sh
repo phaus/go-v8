@@ -1,4 +1,4 @@
-#!sh
+#!/bin/sh
 
 if [ $# -eq 0 ]; then
 	echo >&2 "useage: ./get.sh the_install_dir"
