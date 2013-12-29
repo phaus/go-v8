@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 hash svn 2>/dev/null || { echo >&2 "You need to install Subversion client."; exit 1; }
 
