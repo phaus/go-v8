@@ -1,6 +1,6 @@
 package main
 
-import "github.com/idada/v8.go"
+import "../../"
 
 func main() {
 	engine := v8.NewEngine()

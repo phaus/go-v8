@@ -13,7 +13,7 @@ else
 	exit 1
 fi
 
-v8_version="3.24.5"
+v8_version="3.24.7"
 v8_path="v8-$v8_version"
 
 # check v8 installation
