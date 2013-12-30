@@ -48,7 +48,7 @@ func main() {
 	context := engine.NewContext(nil)
 
 	context.Scope(func(cs v8.ContextScope) {
-		result := script.Run()
+		result := cs.Run(script)
 		println(result.ToString())
 	})
 }
@@ -235,7 +235,7 @@ func main() {
 	context := engine.NewContext(nil)
 
 	context.Scope(func(cs v8.ContextScope) {
-		result := script.Run()
+		result := cs.Run(script)
 		println(result.ToString())
 	})
 }
@@ -349,7 +349,7 @@ V8嵌入指南中的解释:
 
 ```go
 context.Scope(func(cs v8.ContextScope){
-	script.Run()
+	cs.Run(script)
 })
 ```
 
