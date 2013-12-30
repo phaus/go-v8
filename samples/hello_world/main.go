@@ -8,7 +8,7 @@ func main() {
 	context := engine.NewContext(nil)
 
 	context.Scope(func(cs v8.ContextScope) {
-		result := script.Run()
+		result := cs.Run(script)
 		println(result.ToString())
 	})
 }
