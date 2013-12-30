@@ -28,7 +28,7 @@ using namespace v8;
 #define VALUE_SCOPE(value) \
 	V8_Value* the_value = static_cast<V8_Value*>(value); \
 	ISOLATE_SCOPE(the_value->GetIsolate()); \
-	Local<Value> local_value = the_value->self \
+	Local<Value> local_value = Local<Value>::New(isolate, the_value->self) \
 
 #define OBJECT_TEMPLATE_SCOPE(tpl) \
 	V8_ObjectTemplate* the_template = static_cast<V8_ObjectTemplate*>(tpl); \
@@ -103,26 +103,27 @@ public:
 
 class V8_Value {
 public:
-	V8_Value(V8_Context* the_context, Handle<Value> value) : self(value) {
-		context = the_context;
-		//self.Reset(context->GetIsolate(), value);
-		//context_handler.Reset(context->GetIsolate(), context->self);
+	V8_Value(V8_Context* the_context, Handle<Value> value) {
+		isolate_ = the_context->GetIsolate();
+		self.Reset(isolate_, value);
+		context_handler.Reset(isolate_, the_context->self);
 	}
 
 	~V8_Value() {
-		//ISOLATE_SCOPE(GetIsolate());
-		//Context::Scope context_scope(Local<Context>::New(isolate, context->self));
-		//self.Reset();
-		//context_handler.Reset();
+		Locker locker(isolate_);
+		Isolate::Scope isolate_scope(isolate_);
+
+		self.Reset();
+		context_handler.Reset();
 	}
 
 	Isolate* GetIsolate() {
-		return context->GetIsolate();
+		return isolate_;
 	}
 
-	V8_Context* context;
-	Handle<Value> self;
-	//Persistent<Context> context_handler;
+	Isolate* isolate_;
+	Persistent<Value> self;
+	Persistent<Context> context_handler;
 };
 
 typedef struct V8_ReturnValue {
@@ -730,7 +731,7 @@ int V8_Object_SetProperty(void* value, const char* key, int key_length, void* pr
 void* V8_Object_GetProperty(void* value, const char* key, int key_length) {
 	VALUE_SCOPE(value);
 
-	return new_V8_Value(the_value->context,
+	return new_V8_Value(V8_Current_Context(isolate),
 		Local<Object>::Cast(local_value)->Get(
 			String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length)
 		)
@@ -749,7 +750,7 @@ int V8_Object_SetElement(void* value, uint32_t index, void* elem_value) {
 void* V8_Object_GetElement(void* value, uint32_t index) {
 	VALUE_SCOPE(value);
 
-	return new_V8_Value(the_value->context,
+	return new_V8_Value(V8_Current_Context(isolate),
 		Local<Object>::Cast(local_value)->Get(index)
 	);
 }
@@ -811,7 +812,7 @@ int V8_Object_DeleteElement(void* value, uint32_t index) {
 void* V8_Object_GetPropertyNames(void* value) {
 	VALUE_SCOPE(value);
 
-	return new_V8_Value(the_value->context,
+	return new_V8_Value(V8_Current_Context(isolate),
 		Local<Object>::Cast(local_value)->GetPropertyNames()
 	);
 }
@@ -819,7 +820,7 @@ void* V8_Object_GetPropertyNames(void* value) {
 void* V8_Object_GetOwnPropertyNames(void* value) {
 	VALUE_SCOPE(value);
 
-	return new_V8_Value(the_value->context,
+	return new_V8_Value(V8_Current_Context(isolate),
 		Local<Object>::Cast(local_value)->GetOwnPropertyNames()
 	);
 }
@@ -827,7 +828,7 @@ void* V8_Object_GetOwnPropertyNames(void* value) {
 void* V8_Object_GetPrototype(void* value) {
 	VALUE_SCOPE(value);
 
-	return new_V8_Value(the_value->context,
+	return new_V8_Value(V8_Current_Context(isolate),
 		Local<Object>::Cast(local_value)->GetPrototype()
 	);
 }
@@ -898,7 +899,7 @@ void V8_Object_SetAccessor(void *value, const char* key, int key_length, void* g
 	VALUE_SCOPE(value);
 
 	Handle<Array> callback_info = Array::New(isolate, OTA_Num);
-	callback_info->Set(OTA_Context, External::New(isolate, (void*)the_value->context));
+	callback_info->Set(OTA_Context, External::New(isolate, (void*)V8_Current_Context(isolate)));
 	callback_info->Set(OTA_Getter, External::New(isolate, getter));
 	callback_info->Set(OTA_Setter, External::New(isolate, setter));
 	callback_info->Set(OTA_KeyString, External::New(isolate, (void*)key));
@@ -1180,7 +1181,7 @@ void* V8_Function_Call(void* value, int argc, void* argv) {
 		real_argv[i] = Local<Value>::New(isolate, static_cast<V8_Value*>(argv_ptr[i])->self);
 	}
 
-	void* result = new_V8_Value(the_value->context,
+	void* result = new_V8_Value(V8_Current_Context(isolate),
 		Local<Function>::Cast(local_value)->Call(local_value, argc, real_argv)
 	);
 

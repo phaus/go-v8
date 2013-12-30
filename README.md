@@ -179,10 +179,6 @@ context.Scope(func(cs v8.ContextScope) {
 })
 ```
 
-Please note. Don't take any JavaScript value out scope.
-
-When the outermost Scope() return, all of the JavaScript value created in this scope or nested scope will be destroyed.
-
 More
 ----
 
@@ -367,10 +363,6 @@ context.Scope(func(cs v8.ContextScope) {
 	})
 })
 ```
-
-请注意！不要把JavaScript的Value对象带到最外层的Context.Scope()的回调函数外。
-
-当最外层的Scope()返回，所有在这个Scope中或嵌套的Scope中创建的JavaScript值都将被销毁。
 
 更多
 ----
