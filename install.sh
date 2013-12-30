@@ -13,7 +13,7 @@ else
 	exit 1
 fi
 
-v8_version="3.24.7"
+v8_version="3.24.8"
 v8_path="v8-$v8_version"
 
 # check v8 installation
@@ -65,17 +65,23 @@ if [ libv8_base == '' ] || [ libv8_snapshot == '' ]; then
 	exit
 fi
 
-# for linux
+# for Linux
 librt=''
 if [ `go env | grep GOHOSTOS` == 'GOHOSTOS="linux"' ]; then
 	librt='-lrt'
 fi
 
+# for Mac
+libstdcpp=''
+if  [ `go env | grep GOHOSTOS` == 'GOHOSTOS="darwin"' ]; then
+	libstdcpp='-stdlib=libstdc++'
+fi
+
 echo "Name: v8
 Description: v8 javascript engine
 Version: $v8_version
-Cflags: -I`pwd`/$v8_path/include
-Libs: `pwd`/$libv8_base `pwd`/$libv8_snapshot $librt" > v8.pc
+Cflags: $libstdcpp -I`pwd`/$v8_path/include
+Libs: $libstdcpp `pwd`/$libv8_base `pwd`/$libv8_snapshot $librt" > v8.pc
 
 go install
 
