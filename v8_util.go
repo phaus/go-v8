@@ -23,7 +23,7 @@ var (
 
 func (cs ContextScope) Eval(code string) *Value {
 	if script := cs.context.engine.Compile([]byte(code), nil, nil); script != nil {
-		return script.Run()
+		return cs.Run(script)
 	}
 	return nil
 }

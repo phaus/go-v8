@@ -75,7 +75,7 @@ func try_catch_callback(callback unsafe.Pointer) {
 }
 
 func (cs ContextScope) ThrowException(err string) {
-	cs.context.engine.Compile([]byte(`throw "`+err+`"`), nil, nil).Run()
+	cs.Eval(`throw "` + err + `"`)
 	//
 	// TODO: use Isolate::ThrowException() will make FunctionTemplate::GetFunction() returns NULL, why?
 	//

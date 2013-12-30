@@ -84,7 +84,7 @@ func Test_Allocator(t *testing.T) {
 	script := engine.Compile([]byte(`var data = new ArrayBuffer(10); data[0]='a'; data[0];`), nil, nil)
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		exception := cs.TryCatch(true, func() {
-			value := script.Run()
+			value := cs.Run(script)
 			if value.ToString() != "a" {
 				t.Fatal("value failed")
 			}
@@ -102,7 +102,7 @@ func Test_MessageListener(t *testing.T) {
 		}, nil)
 		script := engine.Compile([]byte(`var test[ = ;`), nil, nil)
 		if script != nil {
-			script.Run()
+			cs.Run(script)
 		}
 
 		SetCaptureStackTraceForUncaughtExceptions(true, 1)
@@ -111,14 +111,14 @@ func Test_MessageListener(t *testing.T) {
 		}, nil)
 		script = engine.Compile([]byte(`var test] = ;`), nil, nil)
 		if script != nil {
-			script.Run()
+			cs.Run(script)
 		}
 
 		cs.AddMessageListener(true, nil, nil)
 		exception := cs.TryCatch(true, func() {
 			script = engine.Compile([]byte(`var test[] = ;`), nil, nil)
 			if script != nil {
-				script.Run()
+				cs.Run(script)
 			}
 		})
 		if exception != "" {
@@ -173,7 +173,7 @@ func Test_PreCompile(t *testing.T) {
 
 		// test compile with script data
 		script := engine.Compile(code, nil, scriptData2)
-		value := script.Run()
+		value := cs.Run(script)
 		result := value.ToString()
 
 		if result != "Hello PreCompile!" {
@@ -289,7 +289,7 @@ func Test_Values(t *testing.T) {
 func Test_Object(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		script := engine.Compile([]byte("a={};"), nil, nil)
-		value := script.Run()
+		value := cs.Run(script)
 		object := value.ToObject()
 
 		// Test get/set property
@@ -416,7 +416,7 @@ func Test_Object(t *testing.T) {
 
 		// Test GetPropertyNames
 		script = engine.Compile([]byte("a={x:10,y:20,z:30};"), nil, nil)
-		value = script.Run()
+		value = cs.Run(script)
 		object = value.ToObject()
 
 		names := object.GetPropertyNames()
@@ -444,7 +444,7 @@ func Test_Object(t *testing.T) {
 func Test_Array(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		script := engine.Compile([]byte("[1,2,3]"), nil, nil)
-		value := script.Run()
+		value := cs.Run(script)
 		result := value.ToArray()
 
 		if result.Length() != 3 {
@@ -499,7 +499,7 @@ func Test_Function(t *testing.T) {
 			}
 		`), nil, nil)
 
-		value := script.Run()
+		value := cs.Run(script)
 
 		if value.IsFunction() == false {
 			t.Fatal("value not a function")
@@ -822,15 +822,15 @@ func Test_Context(t *testing.T) {
 	script3 := engine.Compile([]byte("Test_Context = Test_Context + 7;"), nil, nil)
 
 	test_func := func(cs ContextScope) {
-		if script1.Run().IsFalse() {
+		if cs.Run(script1).IsFalse() {
 			t.Fatal(`script1.Run(c).IsFalse()`)
 		}
 
-		if script2.Run().ToInteger() != 1 {
+		if cs.Run(script2).ToInteger() != 1 {
 			t.Fatal(`script2.Run(c).ToInteger() != 1`)
 		}
 
-		if script3.Run().ToInteger() != 8 {
+		if cs.Run(script3).ToInteger() != 8 {
 			t.Fatal(`script3.Run(c).ToInteger() != 8`)
 		}
 	}
@@ -887,7 +887,7 @@ func Test_UnderscoreJS(t *testing.T) {
 		}
 
 		script := engine.Compile(code, nil, nil)
-		script.Run()
+		cs.Run(script)
 
 		test := []byte(`
 			_.find([1, 2, 3, 4, 5, 6], function(num) { 
@@ -895,7 +895,7 @@ func Test_UnderscoreJS(t *testing.T) {
 			});
 		`)
 		testScript := engine.Compile(test, nil, nil)
-		value := testScript.Run()
+		value := cs.Run(testScript)
 
 		if value == nil || value.IsNumber() == false {
 			t.FailNow()
@@ -1000,7 +1000,7 @@ func Test_ThreadSafe1(t *testing.T) {
 		go func() {
 			engine.NewContext(nil).Scope(func(cs ContextScope) {
 				script := engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
-				value := script.Run()
+				value := cs.Run(script)
 				result := value.ToString()
 				fail = fail || result != "Hello World!"
 				runtime.GC()
@@ -1030,7 +1030,7 @@ func Test_ThreadSafe2(t *testing.T) {
 				rand_sched(200)
 
 				script := engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
-				value := script.Run()
+				value := cs.Run(script)
 				result := value.ToString()
 				fail = fail || result != "Hello World!"
 				runtime.GC()
@@ -1059,7 +1059,7 @@ func Test_ThreadSafe3(t *testing.T) {
 			engine.NewContext(nil).Scope(func(cs ContextScope) {
 				rand_sched(200)
 
-				value := script.Run()
+				value := cs.Run(script)
 				result := value.ToString()
 				fail = fail || result != "Hello World!"
 				runtime.GC()
@@ -1089,7 +1089,7 @@ func Test_ThreadSafe4(t *testing.T) {
 			context.Scope(func(cs ContextScope) {
 				rand_sched(200)
 
-				value := script.Run()
+				value := cs.Run(script)
 				result := value.ToString()
 				fail = fail || result != "Hello World!"
 				runtime.GC()
@@ -1139,7 +1139,7 @@ func Test_ThreadSafe6(t *testing.T) {
 			script := <-scriptChan
 
 			context.Scope(func(cs ContextScope) {
-				result := script.Run().ToString()
+				result := cs.Run(script).ToString()
 				fail = fail || result != "Hello World!"
 			})
 		}()
@@ -1289,7 +1289,7 @@ func Benchmark_RunScript(b *testing.B) {
 
 	context.Scope(func(cs ContextScope) {
 		for i := 0; i < b.N; i++ {
-			script.Run()
+			cs.Run(script)
 		}
 	})
 
@@ -1308,7 +1308,7 @@ func Benchmark_JsFunction(b *testing.B) {
 	`), nil, nil)
 
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
-		value := script.Run()
+		value := cs.Run(script)
 		b.StartTimer()
 
 		for i := 0; i < b.N; i++ {
