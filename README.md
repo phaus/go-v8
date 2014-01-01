@@ -146,30 +146,6 @@ Setter           2934 ns/op
 TryCatch        43097 ns/op
 ```
 
-I write many test and benchmark to make sure v8.go stable and efficient.
-
-There is a shell script named 'test.sh' in the project. 
-
-It can auto configure cgo environment variables and run test.
-
-For example:
-
-```
-./test.sh . .
-```
-
-The above command will run all of test and benchmark.
-
-The first argument of test.sh is test name pattern, second argument is benchmark name pattern.
-
-For example:
-
-```
-./test.sh ThreadSafe Array
-```
-
-The above command will run all of thread safe test and all of benchmark about Array type.
-
 Concepts
 ========
 
@@ -400,28 +376,6 @@ Getter           2060 ns/op
 Setter           2934 ns/op
 TryCatch        43097 ns/op
 ```
-
-我写了很多的单元测试和基准测试用来确定v8.go是否稳定和高效。
-
-项目根目录下有一个叫'text.sh'的shell脚本。这个脚本可以自动配置CGO的环境变量并运行v8.go的测试。
-
-举个例子:
-
-```
-./test.sh . .
-```
-
-以下命令将执行所以单元测试和基准测试。
-
-test.sh的第一个参数是单元测试的名称匹配模式，第二个参数是基准测试的名称匹配模式。
-
-再举个例子:
-
-```
-./test.sh ThreadSafe Array
-```
-
-以上命令将运行所有线程安全相关的单元测试和所有Array相关的基准测试。
 
 概念
 ====
