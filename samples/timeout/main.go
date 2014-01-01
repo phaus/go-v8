@@ -10,41 +10,30 @@ func main() {
 
 	var context *v8.Context
 
-	// echo()
-	echo := engine.NewFunctionTemplate(func(info v8.FunctionCallbackInfo) {
-		println(info.Get(0).ToString())
-	}, nil)
-	global.SetAccessor("echo", func(name string, info v8.AccessorCallbackInfo) {
-		info.ReturnValue().Set(echo.NewFunction())
-	}, nil, nil, v8.PA_None)
+	global.Bind("print", func(v ...interface{}) {
+		fmt.Println(v...)
+	})
 
-	// setTimeout()
-	setTimeout := engine.NewFunctionTemplate(func(info v8.FunctionCallbackInfo) {
-		d := info.Get(0).ToInteger()
-		f := info.Get(1).ToFunction()
+	global.Bind("setTimeout", func(d int64, callback *v8.Function) {
 		time.AfterFunc(time.Millisecond*time.Duration(d), func() {
 			context.Scope(func(cs v8.ContextScope) {
-				f.Call()
+				callback.Call()
 			})
 		})
-	}, nil)
-	global.SetAccessor("setTimeout", func(name string, info v8.AccessorCallbackInfo) {
-		info.ReturnValue().Set(setTimeout.NewFunction())
-	}, nil, nil, v8.PA_None)
+	})
 
 	// test
-	fmt.Println("press any key to exit")
-
 	context = engine.NewContext(global)
 	context.Scope(func(cs v8.ContextScope) {
 		cs.Eval(`
-		echo("begin");
-		setTimeout(3000, function(){
-			echo("one");
-			setTimeout(3000, function(){
-				echo("two");
-				setTimeout(3000, function(){
-					echo("three");
+		print("begin");
+		setTimeout(1500, function(){
+			print("one");
+			setTimeout(1500, function(){
+				print("two");
+				setTimeout(1500, function(){
+					print("three");
+					print("press any key to exit");
 				})
 			})
 		})`)

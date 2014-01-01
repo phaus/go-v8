@@ -123,19 +123,16 @@ func (engine *Engine) GoFuncToJsFunc(gofunc reflect.Value) *FunctionTemplate {
 
 		var out []reflect.Value
 
-		if numIn != numArgs {
-			argType := funcType.In(0)
-			if numIn == 1 && argType.Kind() == reflect.Slice && numArgs > 1 {
-				in := make([]reflect.Value, 1)
-				in[0] = reflect.MakeSlice(argType, numArgs, numArgs)
+		if funcType.IsVariadic() {
+			in := make([]reflect.Value, 1)
+			in[0] = reflect.MakeSlice(funcType.In(0), numArgs, numArgs)
 
-				for i := 0; i < numArgs; i++ {
-					jsvalue := callbackInfo.Get(i)
-					engine.SetJsValueToGo(in[0].Index(i), jsvalue)
-				}
-
-				out = gofunc.CallSlice(in)
+			for i := 0; i < numArgs; i++ {
+				jsvalue := callbackInfo.Get(i)
+				engine.SetJsValueToGo(in[0].Index(i), jsvalue)
 			}
+
+			out = gofunc.CallSlice(in)
 		} else {
 			in := make([]reflect.Value, numIn)
 
