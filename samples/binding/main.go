@@ -41,7 +41,7 @@ func main() {
 			a.Dump("new");
 
 			a.Callback = function(a, b) {
-				print([a, b]);
+				print(a, b);
 			}
 
 			a.Callback(10, "Hello");

@@ -18,6 +18,7 @@ Features
 * Catch JavaScript exception in Go
 * Throw JavaScript exception by Go
 * JSON parse and generate
+* Powerful binding API
 
 Install
 =======
@@ -50,6 +51,64 @@ func main() {
 	context.Scope(func(cs v8.ContextScope) {
 		result := cs.Run(script)
 		println(result.ToString())
+	})
+}
+```
+
+Fast Binding
+============
+
+```go
+package main
+
+import "fmt"
+import "reflect"
+import "github.com/idada/v8.go"
+
+type MyType struct {
+	Id       int
+	Name     string
+	Callback func(a int, b string)
+}
+
+func (mt *MyType) Dump(add string) {
+	println("Id =", mt.Id, "| Name = '"+mt.Name+"'", "| Add = '"+add+"'")
+}
+
+func main() {
+	engine := v8.NewEngine()
+
+	global := engine.NewObjectTemplate()
+
+	global.Bind("MyType", MyType{})
+
+	global.Bind("print", func(v ...interface{}) {
+		fmt.Println(v...)
+	})
+
+	global.Bind("test", func(obj *v8.Object) {
+		raw := obj.GetInternalField(0).(*reflect.Value)
+		raw.Interface().(*MyType).Callback(123, "dada")
+	})
+
+	engine.NewContext(global).Scope(func(cs v8.ContextScope) {
+		cs.Eval(`
+			var a = new MyType();
+
+			a.Dump("old");
+
+			a.Id = 10;
+			a.Name = "Hello";
+			a.Dump("new");
+
+			a.Callback = function(a, b) {
+				print(a, b);
+			}
+
+			a.Callback(10, "Hello");
+
+			test(a);
+		`)
 	})
 }
 ```
@@ -182,7 +241,7 @@ context.Scope(func(cs v8.ContextScope) {
 More
 ----
 
-Please read 'v8_all_test.go' for more information.
+Please read `v8_all_test.go` and the codes in `samples` folder.
 
 中文介绍
 ========
@@ -205,6 +264,7 @@ V8引擎的Go语言绑定。
 * 在Go语言端捕获JavaScript的异常
 * 从Go语言端抛出JavaScript的异常
 * JSON解析和生成
+* 强大的绑定功能
 
 安装
 ====
@@ -237,6 +297,64 @@ func main() {
 	context.Scope(func(cs v8.ContextScope) {
 		result := cs.Run(script)
 		println(result.ToString())
+	})
+}
+```
+
+快速绑定
+=======
+
+```go
+package main
+
+import "fmt"
+import "reflect"
+import "github.com/idada/v8.go"
+
+type MyType struct {
+	Id       int
+	Name     string
+	Callback func(a int, b string)
+}
+
+func (mt *MyType) Dump(add string) {
+	println("Id =", mt.Id, "| Name = '"+mt.Name+"'", "| Add = '"+add+"'")
+}
+
+func main() {
+	engine := v8.NewEngine()
+
+	global := engine.NewObjectTemplate()
+
+	global.Bind("MyType", MyType{})
+
+	global.Bind("print", func(v ...interface{}) {
+		fmt.Println(v...)
+	})
+
+	global.Bind("test", func(obj *v8.Object) {
+		raw := obj.GetInternalField(0).(*reflect.Value)
+		raw.Interface().(*MyType).Callback(123, "dada")
+	})
+
+	engine.NewContext(global).Scope(func(cs v8.ContextScope) {
+		cs.Eval(`
+			var a = new MyType();
+
+			a.Dump("old");
+
+			a.Id = 10;
+			a.Name = "Hello";
+			a.Dump("new");
+
+			a.Callback = function(a, b) {
+				print(a, b);
+			}
+
+			a.Callback(10, "Hello");
+
+			test(a);
+		`)
 	})
 }
 ```
@@ -367,4 +485,4 @@ context.Scope(func(cs v8.ContextScope) {
 更多
 ----
 
-请阅读'v8\_all\_test.go'获得更多信息。
+请阅读`v8\_all\_test.go`以及`samples`目录下的示例代码。

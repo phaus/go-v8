@@ -119,29 +119,46 @@ func (engine *Engine) GoFuncToJsFunc(gofunc reflect.Value) *FunctionTemplate {
 	funcType := gofunc.Type()
 	return engine.NewFunctionTemplate(func(callbackInfo FunctionCallbackInfo) {
 		numIn := funcType.NumIn()
+		numArgs := callbackInfo.Length()
 
-		// TODO: ...
-		if numIn != callbackInfo.Length() {
+		var out []reflect.Value
+
+		if numIn != numArgs {
+			argType := funcType.In(0)
+			if numIn == 1 && argType.Kind() == reflect.Slice && numArgs > 1 {
+				in := make([]reflect.Value, 1)
+				in[0] = reflect.MakeSlice(argType, numArgs, numArgs)
+
+				for i := 0; i < numArgs; i++ {
+					jsvalue := callbackInfo.Get(i)
+					engine.SetJsValueToGo(in[0].Index(i), jsvalue)
+				}
+
+				out = gofunc.CallSlice(in)
+			}
+		} else {
+			in := make([]reflect.Value, numIn)
+
+			for i := 0; i < len(in); i++ {
+				jsvalue := callbackInfo.Get(i)
+				in[i] = reflect.Indirect(reflect.New(funcType.In(i)))
+				engine.SetJsValueToGo(in[i], jsvalue)
+			}
+
+			out = gofunc.Call(in)
+		}
+
+		if out == nil {
 			callbackInfo.CurrentScope().ThrowException("argument number not match")
 			return
 		}
 
-		in := make([]reflect.Value, numIn)
-
-		for i := 0; i < len(in); i++ {
-			jsvalue := callbackInfo.Get(i)
-			in[i] = reflect.Indirect(reflect.New(funcType.In(i)))
-			engine.SetJsValueToGo(in[i], jsvalue)
-		}
-
-		results := gofunc.Call(in)
-
-		if len(results) > 0 {
-			jsResults := engine.NewArray(len(results))
+		if len(out) > 0 {
+			jsResults := engine.NewArray(len(out))
 			jsResultsArray := jsResults.ToArray()
 
-			for i := 0; i < len(in); i++ {
-				jsResultsArray.SetElement(i, engine.GoValueToJsValue(results[i]))
+			for i := 0; i < len(out); i++ {
+				jsResultsArray.SetElement(i, engine.GoValueToJsValue(out[i]))
 			}
 
 			callbackInfo.ReturnValue().Set(jsResults)
