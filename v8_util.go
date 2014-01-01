@@ -145,7 +145,8 @@ func newArrayBufferAllocator() *ArrayBufferAllocator {
 // Please set ac and fc to nil if you don't want a custom one
 func SetArrayBufferAllocator(
 	ac ArrayBufferAllocateCallback,
-	fc ArrayBufferFreeCallback) {
+	fc ArrayBufferFreeCallback,
+) {
 	var acPointer, fcPointer unsafe.Pointer
 	if ac != nil {
 		acPointer = unsafe.Pointer(&ac)

@@ -122,7 +122,7 @@ func (ot *ObjectTemplate) Dispose() {
 	}
 }
 
-func (ot *ObjectTemplate) NewObject() *Value {
+func (e *Engine) MakeObject(ot *ObjectTemplate) *Value {
 	ot.Lock()
 	defer ot.Unlock()
 
@@ -130,7 +130,7 @@ func (ot *ObjectTemplate) NewObject() *Value {
 		return nil
 	}
 
-	return newValue(C.V8_ObjectTemplate_NewObject(ot.self))
+	return newValue(C.V8_ObjectTemplate_NewObject(e.self, ot.self))
 }
 
 func (ot *ObjectTemplate) WrapObject(value *Value) {

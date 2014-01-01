@@ -6,7 +6,7 @@ import (
 )
 
 func (template *ObjectTemplate) Bind(typeName string, target interface{}) error {
-	e := template.engine
+	engine := template.engine
 
 	typeInfo := reflect.TypeOf(target)
 
@@ -14,132 +14,216 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 		typeInfo = typeInfo.Elem()
 	}
 
-	if typeInfo.Kind() != reflect.Struct {
-		return errors.New("target not a struct or struct pointer")
+	if typeInfo.Kind() == reflect.Func {
+		jsfunc := engine.GoFuncToJsFunc(reflect.ValueOf(target))
+		template.SetAccessor(typeName, func(name string, info AccessorCallbackInfo) {
+			info.ReturnValue().Set(jsfunc.NewFunction())
+		}, nil, nil, PA_None)
+		return nil
 	}
 
-	constructor := e.NewFunctionTemplate(func(info FunctionCallbackInfo) {
-		value := reflect.New(typeInfo)
-		info.This().SetInternalField(0, &value)
-	}, nil)
-	constructor.SetClassName(typeName)
+	if typeInfo.Kind() == reflect.Struct {
+		constructor := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
+			value := reflect.New(typeInfo)
+			info.This().SetInternalField(0, &value)
+		}, nil)
+		constructor.SetClassName(typeName)
 
-	obj_template := constructor.InstanceTemplate()
-	obj_template.SetNamedPropertyHandler(
-		// get
-		func(name string, info PropertyCallbackInfo) {
-			value := info.This().ToObject().GetInternalField(0).(*reflect.Value)
+		objTemplate := constructor.InstanceTemplate()
+		objTemplate.SetInternalFieldCount(1)
+		objTemplate.SetNamedPropertyHandler(
+			// get
+			func(name string, info PropertyCallbackInfo) {
+				value := info.This().ToObject().GetInternalField(0).(*reflect.Value)
 
-			field := value.Elem().FieldByName(name)
+				field := value.Elem().FieldByName(name)
 
-			if field.IsValid() {
-				switch field.Kind() {
-				case reflect.Bool:
-					info.ReturnValue().SetBoolean(field.Bool())
-				case reflect.String:
-					info.ReturnValue().SetString(field.String())
-				case reflect.Int8, reflect.Int16, reflect.Int32:
-					info.ReturnValue().SetInt32(int32(field.Int()))
-				case reflect.Uint8, reflect.Uint16, reflect.Uint32:
-					info.ReturnValue().SetUint32(uint32(field.Uint()))
-				case reflect.Int, reflect.Uint, reflect.Int64, reflect.Uint64:
-					info.ReturnValue().SetNumber(float64(field.Int()))
-				case reflect.Float32, reflect.Float64:
-					info.ReturnValue().SetNumber(field.Float())
-				case reflect.Func:
-					// TODO:
-				default:
-					info.CurrentScope().ThrowException("unsupported property type '" + typeName + "." + name + "'")
+				if field.IsValid() {
+					info.ReturnValue().Set(engine.GoValueToJsValue(field))
+					return
 				}
-				return
+
+				method := value.MethodByName(name)
+
+				if !method.IsValid() {
+					info.CurrentScope().ThrowException("could't found property or method '" + typeName + "." + name + "'")
+					return
+				}
+
+				info.ReturnValue().Set(engine.GoFuncToJsFunc(method).NewFunction())
+			},
+			// set
+			func(name string, jsvalue *Value, info PropertyCallbackInfo) {
+				value := info.This().ToObject().GetInternalField(0).(*reflect.Value).Elem()
+
+				field := value.FieldByName(name)
+
+				if !field.IsValid() {
+					info.CurrentScope().ThrowException("could't found property '" + typeName + "." + name + "'")
+					return
+				}
+
+				engine.SetJsValueToGo(field, jsvalue)
+			},
+			// query
+			func(name string, info PropertyCallbackInfo) {
+				value := info.This().ToObject().GetInternalField(0).(*reflect.Value).Elem()
+				info.ReturnValue().SetBoolean(value.FieldByName(name).IsValid() || value.MethodByName(name).IsValid())
+			},
+			// delete
+			nil,
+			// enum
+			nil,
+			nil,
+		)
+
+		template.SetAccessor(typeName, func(name string, info AccessorCallbackInfo) {
+			info.ReturnValue().Set(constructor.NewFunction())
+		}, nil, nil, PA_None)
+
+		return nil
+	}
+
+	return errors.New("unsupported target type")
+}
+
+func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
+	switch value.Kind() {
+	case reflect.Bool:
+		return engine.NewBoolean(value.Bool())
+	case reflect.String:
+		return engine.NewString(value.String())
+	case reflect.Int8, reflect.Int16, reflect.Int32:
+		return engine.NewInteger(value.Int())
+	case reflect.Uint8, reflect.Uint16, reflect.Uint32:
+		return engine.NewInteger(value.Int())
+	case reflect.Int, reflect.Uint, reflect.Int64, reflect.Uint64:
+		return engine.NewNumber(float64(value.Int()))
+	case reflect.Float32, reflect.Float64:
+		return engine.NewNumber(value.Float())
+	case reflect.Array, reflect.Slice:
+		arrayLen := value.Len()
+		jsArrayVal := engine.NewArray(value.Len())
+		jsArray := jsArrayVal.ToArray()
+		for i := 0; i < arrayLen; i++ {
+			jsArray.SetElement(i, engine.GoValueToJsValue(value.Index(i)))
+		}
+		return jsArrayVal
+	case reflect.Func:
+		return engine.GoFuncToJsFunc(value).NewFunction()
+	}
+	return engine.Undefined()
+}
+
+func (engine *Engine) GoFuncToJsFunc(gofunc reflect.Value) *FunctionTemplate {
+	funcType := gofunc.Type()
+	return engine.NewFunctionTemplate(func(callbackInfo FunctionCallbackInfo) {
+		numIn := funcType.NumIn()
+
+		// TODO: ...
+		if numIn != callbackInfo.Length() {
+			callbackInfo.CurrentScope().ThrowException("argument number not match")
+			return
+		}
+
+		in := make([]reflect.Value, numIn)
+
+		for i := 0; i < len(in); i++ {
+			jsvalue := callbackInfo.Get(i)
+			in[i] = reflect.Indirect(reflect.New(funcType.In(i)))
+			engine.SetJsValueToGo(in[i], jsvalue)
+		}
+
+		results := gofunc.Call(in)
+
+		if len(results) > 0 {
+			jsResults := engine.NewArray(len(results))
+			jsResultsArray := jsResults.ToArray()
+
+			for i := 0; i < len(in); i++ {
+				jsResultsArray.SetElement(i, engine.GoValueToJsValue(results[i]))
 			}
 
-			method := value.MethodByName(name)
+			callbackInfo.ReturnValue().Set(jsResults)
+		}
+	}, nil)
+}
 
-			if method.IsValid() {
-				methodType := method.Type()
-				info.ReturnValue().Set(e.NewFunctionTemplate(func(methodCallbackInfo FunctionCallbackInfo) {
-					numIn := methodType.NumIn()
+var (
+	typeOfValue    = reflect.TypeOf(new(Value))
+	typeOfObject   = reflect.TypeOf(new(Object))
+	typeOfArray    = reflect.TypeOf(new(Array))
+	typeOfRegExp   = reflect.TypeOf(new(RegExp))
+	typeOfFunction = reflect.TypeOf(new(Function))
+)
 
-					if numIn != methodCallbackInfo.Length() {
-						info.CurrentScope().ThrowException("argument number not match when calling '" + typeName + "." + name + "()'")
-						return
-					}
+func (engine *Engine) SetJsValueToGo(field reflect.Value, jsvalue *Value) {
+	goType := field.Type()
+	switch goType.Kind() {
+	case reflect.Bool:
+		field.SetBool(jsvalue.ToBoolean())
+	case reflect.String:
+		field.SetString(jsvalue.ToString())
+	case reflect.Int8, reflect.Int16, reflect.Int32:
+		field.SetInt(int64(jsvalue.ToInt32()))
+	case reflect.Uint8, reflect.Uint16, reflect.Uint32:
+		field.SetUint(uint64(jsvalue.ToUint32()))
+	case reflect.Int, reflect.Uint, reflect.Int64, reflect.Uint64:
+		field.SetInt(jsvalue.ToInteger())
+	case reflect.Float32, reflect.Float64:
+		field.SetFloat(jsvalue.ToNumber())
+	case reflect.Slice:
+		jsArray := jsvalue.ToArray()
+		jsArrayLen := jsArray.Length()
+		field.Set(reflect.MakeSlice(goType, jsArrayLen, jsArrayLen))
+		fallthrough
+	case reflect.Array:
+		jsArray := jsvalue.ToArray()
+		jsArrayLen := jsArray.Length()
+		for i := 0; i < jsArrayLen; i++ {
+			engine.SetJsValueToGo(field.Index(i), jsArray.GetElement(i))
+		}
+	case reflect.Interface:
+		field.Set(reflect.ValueOf(jsvalue))
+	case reflect.Func:
+		function := jsvalue.ToFunction()
+		field.Set(reflect.MakeFunc(goType, func(args []reflect.Value) []reflect.Value {
+			jsargs := make([]*Value, len(args))
+			for i := 0; i < len(args); i++ {
+				jsargs[i] = engine.GoValueToJsValue(args[i])
+			}
+			jsresult := function.Call(jsargs...)
 
-					in := make([]reflect.Value, numIn)
+			outNum := goType.NumOut()
 
-					for i := 0; i < len(in); i++ {
-						jsvalue := methodCallbackInfo.Get(i)
-						switch methodType.In(i).Kind() {
-						case reflect.Bool:
-							in[i] = reflect.ValueOf(jsvalue.ToBoolean())
-						case reflect.String:
-							in[i] = reflect.ValueOf(jsvalue.ToString())
-						case reflect.Int8, reflect.Int16, reflect.Int32:
-							in[i] = reflect.ValueOf(int64(jsvalue.ToInt32()))
-						case reflect.Uint8, reflect.Uint16, reflect.Uint32:
-							in[i] = reflect.ValueOf(uint64(jsvalue.ToUint32()))
-						case reflect.Int, reflect.Uint, reflect.Int64, reflect.Uint64:
-							in[i] = reflect.ValueOf(jsvalue.ToInteger())
-						case reflect.Float32, reflect.Float64:
-							in[i] = reflect.ValueOf(jsvalue.ToNumber())
-						default:
-							info.CurrentScope().ThrowException("unsupported function argument type at '" + typeName + "." + name + "()'")
-							return
-						}
-					}
-
-					method.Call(in)
-				}, nil).NewFunction())
-				return
+			if outNum == 1 {
+				var result = reflect.Indirect(reflect.New(goType.Out(0)))
+				engine.SetJsValueToGo(result, jsresult)
+				return []reflect.Value{result}
 			}
 
-			info.CurrentScope().ThrowException("could't found property or method '" + typeName + "." + name + "'")
-		},
-		// set
-		func(name string, jsvalue *Value, info PropertyCallbackInfo) {
-			value := info.This().ToObject().GetInternalField(0).(*reflect.Value).Elem()
+			results := make([]reflect.Value, outNum)
+			jsresultArray := jsresult.ToArray()
 
-			field := value.FieldByName(name)
-
-			if !field.IsValid() {
-				info.CurrentScope().ThrowException("could't found property '" + typeName + "." + name + "'")
-				return
+			for i := 0; i < outNum; i++ {
+				results[i] = reflect.Indirect(reflect.New(goType.Out(i)))
+				engine.SetJsValueToGo(results[i], jsresultArray.GetElement(i))
 			}
 
-			switch field.Kind() {
-			case reflect.Bool:
-				field.SetBool(jsvalue.ToBoolean())
-			case reflect.String:
-				field.SetString(jsvalue.ToString())
-			case reflect.Int8, reflect.Int16, reflect.Int32:
-				field.SetInt(int64(jsvalue.ToInt32()))
-			case reflect.Uint8, reflect.Uint16, reflect.Uint32:
-				field.SetUint(uint64(jsvalue.ToUint32()))
-			case reflect.Int, reflect.Uint, reflect.Int64, reflect.Uint64:
-				field.SetInt(jsvalue.ToInteger())
-			case reflect.Float32, reflect.Float64:
-				field.SetFloat(jsvalue.ToNumber())
-			default:
-				info.CurrentScope().ThrowException("unsupported property type '" + typeName + "." + name + "'")
-			}
-		},
-		// query
-		func(name string, info PropertyCallbackInfo) {
-			value := info.This().ToObject().GetInternalField(0).(*reflect.Value).Elem()
-			info.ReturnValue().SetBoolean(value.FieldByName(name).IsValid() || value.MethodByName(name).IsValid())
-		},
-		// delete
-		nil,
-		// enum
-		nil,
-		nil,
-	)
-	obj_template.SetInternalFieldCount(1)
-
-	template.SetAccessor(typeName, func(name string, info AccessorCallbackInfo) {
-		info.ReturnValue().Set(constructor.NewFunction())
-	}, nil, nil, PA_None)
-
-	return nil
+			return results
+		}))
+	default:
+		switch {
+		case typeOfValue == goType:
+			field.Set(reflect.ValueOf(jsvalue))
+		case typeOfObject == goType:
+			field.Set(reflect.ValueOf(jsvalue.ToObject()))
+		case typeOfArray == goType:
+			field.Set(reflect.ValueOf(jsvalue.ToArray()))
+		case typeOfRegExp == goType:
+			field.Set(reflect.ValueOf(jsvalue.ToRegExp()))
+		case typeOfFunction == goType:
+			field.Set(reflect.ValueOf(jsvalue.ToFunction()))
+		}
+	}
 }

@@ -677,16 +677,16 @@ void* V8_False(void* engine) {
 	return new_V8_Value(the_engine, False(isolate));
 }
 
-void* V8_NewNumber(void* context, double val) {
-	CONTEXT_SCOPE(context);
-
-	return new_V8_Value(the_context, Number::New(isolate, val));
+void* V8_NewNumber(void* engine, double val) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	return new_V8_Value(the_engine, Number::New(isolate, val));
 }
 
-void* V8_NewString(void* context, const char* val, int val_length) {
-	CONTEXT_SCOPE(context);
-
-	return new_V8_Value(the_context,
+void* V8_NewString(void* engine, const char* val, int val_length) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	return new_V8_Value(the_engine,
 		String::NewFromOneByte(isolate, (uint8_t*)val, String::kNormalString, val_length)
 	);
 }
@@ -694,10 +694,10 @@ void* V8_NewString(void* context, const char* val, int val_length) {
 /*
 object
 */
-void* V8_NewObject(void* context) {
-	CONTEXT_SCOPE(context);
-
-	return new_V8_Value(the_context, Object::New());
+void* V8_NewObject(void* engine) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	return new_V8_Value(the_engine, Object::New());
 }
 
 int V8_Object_InternalFieldCount(void* value) {
@@ -1045,9 +1045,10 @@ void* V8_AccessorCallbackInfo_ReturnValue(void *info, AccessorDataEnum typ) {
 /*
 array
 */
-void* V8_NewArray(void* context, int length) {
-	CONTEXT_SCOPE(context);
-	return new_V8_Value(the_context, Array::New(isolate, length));
+void* V8_NewArray(void* engine, int length) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	return new_V8_Value(the_engine, Array::New(isolate, length));
 }
 
 int V8_Array_Length(void* value) {
@@ -1058,10 +1059,10 @@ int V8_Array_Length(void* value) {
 /*
 regexp
 */
-void* V8_NewRegExp(void* context, const char* pattern, int length, int flags) {
-	CONTEXT_SCOPE(context);
-
-	return new_V8_Value(the_context, RegExp::New(
+void* V8_NewRegExp(void* engine, const char* pattern, int length, int flags) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	return new_V8_Value(the_engine, RegExp::New(
 		String::NewFromOneByte(isolate, (uint8_t*)pattern, String::kNormalString, length),
 		(RegExp::Flags)flags
 	));
@@ -1257,10 +1258,10 @@ void V8_ObjectTemplate_SetProperty(void* tpl, const char* key, int key_length, v
 	);
 }
 
-void* V8_ObjectTemplate_NewObject(void* tpl) {
+void* V8_ObjectTemplate_NewObject(void* engine, void* tpl) {
 	OBJECT_TEMPLATE_SCOPE(tpl);
-	V8_Context* the_context = V8_Current_Context(isolate);
-	return new_V8_Value(the_context, local_template->NewInstance());
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	return new_V8_Value(the_engine, local_template->NewInstance());
 }
 
 // sync with V8_Object_SetAccessor
