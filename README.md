@@ -485,4 +485,4 @@ context.Scope(func(cs v8.ContextScope) {
 更多
 ----
 
-请阅读`v8\_all\_test.go`以及`samples`目录下的示例代码。
+请阅读`v8_all_test.go`以及`samples`目录下的示例代码。
