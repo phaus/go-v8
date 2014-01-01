@@ -213,16 +213,16 @@ func (engine *Engine) SetJsValueToGo(field reflect.Value, jsvalue *Value) {
 			return results
 		}))
 	default:
-		switch {
-		case typeOfValue == goType:
+		switch goType {
+		case typeOfValue:
 			field.Set(reflect.ValueOf(jsvalue))
-		case typeOfObject == goType:
+		case typeOfObject:
 			field.Set(reflect.ValueOf(jsvalue.ToObject()))
-		case typeOfArray == goType:
+		case typeOfArray:
 			field.Set(reflect.ValueOf(jsvalue.ToArray()))
-		case typeOfRegExp == goType:
+		case typeOfRegExp:
 			field.Set(reflect.ValueOf(jsvalue.ToRegExp()))
-		case typeOfFunction == goType:
+		case typeOfFunction:
 			field.Set(reflect.ValueOf(jsvalue.ToFunction()))
 		}
 	}
