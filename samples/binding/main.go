@@ -7,11 +7,15 @@ import "../../"
 type MyType struct {
 	Id       int
 	Name     string
+	Data     map[string]int
 	Callback func(a int, b string)
 }
 
-func (mt *MyType) Dump(add string) {
-	println("Id =", mt.Id, "| Name = '"+mt.Name+"'", "| Add = '"+add+"'")
+func (mt *MyType) Dump(info string) {
+	fmt.Printf(
+		"Info: \"%s\", Id: %d, Name: \"%s\", Data: %v\n",
+		info, mt.Id, mt.Name, mt.Data,
+	)
 }
 
 func main() {
@@ -38,6 +42,10 @@ func main() {
 
 			a.Id = 10;
 			a.Name = "Hello";
+			a.Data = {
+				'x': 1,
+				'y': 2
+			};
 			a.Dump("new");
 
 			a.Callback = function(a, b) {

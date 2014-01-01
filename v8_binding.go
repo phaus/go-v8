@@ -109,6 +109,20 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 			jsArray.SetElement(i, engine.GoValueToJsValue(value.Index(i)))
 		}
 		return jsArrayVal
+	case reflect.Map:
+		jsObjectVal := engine.NewObject()
+		jsObject := jsObjectVal.ToObject()
+		for _, key := range value.MapKeys() {
+			switch key.Kind() {
+			case reflect.String:
+				jsObject.SetProperty(key.String(), engine.GoValueToJsValue(value.MapIndex(key)), PA_None)
+			case reflect.Int8, reflect.Int16, reflect.Int32,
+				reflect.Uint8, reflect.Uint16, reflect.Uint32,
+				reflect.Int, reflect.Uint, reflect.Int64, reflect.Uint64:
+				jsObject.SetElement(int(key.Int()), engine.GoValueToJsValue(value.MapIndex(key)))
+			}
+		}
+		return jsObjectVal
 	case reflect.Func:
 		return engine.GoFuncToJsFunc(value).NewFunction()
 	}
@@ -196,6 +210,18 @@ func (engine *Engine) SetJsValueToGo(field reflect.Value, jsvalue *Value) {
 		jsArrayLen := jsArray.Length()
 		for i := 0; i < jsArrayLen; i++ {
 			engine.SetJsValueToGo(field.Index(i), jsArray.GetElement(i))
+		}
+	case reflect.Map:
+		jsObject := jsvalue.ToObject()
+		jsObjectKeys := jsObject.GetPropertyNames()
+		jsObjectKeysLen := jsObjectKeys.Length()
+		field.Set(reflect.MakeMap(goType))
+		itemType := goType.Elem()
+		for i := 0; i < jsObjectKeysLen; i++ {
+			mapKey := jsObjectKeys.GetElement(i).ToString()
+			mapValue := reflect.Indirect(reflect.New(itemType))
+			engine.SetJsValueToGo(mapValue, jsObject.GetProperty(mapKey))
+			field.SetMapIndex(reflect.ValueOf(mapKey), mapValue)
 		}
 	case reflect.Interface:
 		field.Set(reflect.ValueOf(jsvalue))
