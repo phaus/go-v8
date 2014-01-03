@@ -57,7 +57,6 @@ func init() {
 func Test_InternalField(t *testing.T) {
 	iCache := make([]interface{}, 0)
 	ot := engine.NewObjectTemplate()
-	ot.SetInternalFieldCount(1)
 	context := engine.NewContext(nil)
 	context.SetPrivateData(iCache)
 	context.Scope(func(cs ContextScope) {
@@ -738,9 +737,9 @@ func Test_ObjectConstructor(t *testing.T) {
 	type MyClass struct {
 		name string
 	}
-	data := new(MyClass)
+
 	ftConstructor := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
-		info.This().SetInternalField(0, data)
+		info.This().SetInternalField(0, new(MyClass))
 	}, nil)
 	ftConstructor.SetClassName("MyClass")
 
@@ -758,13 +757,13 @@ func Test_ObjectConstructor(t *testing.T) {
 		func(name string, info PropertyCallbackInfo) {
 			//t.Logf("get %s", name)
 			get_called = get_called || name == "abc"
-			data := info.This().ToObject().GetInternalField(0).(*MyClass)
+			data := info.This().GetInternalField(0).(*MyClass)
 			info.ReturnValue().Set(engine.NewString(data.name))
 		},
 		func(name string, value *Value, info PropertyCallbackInfo) {
 			//t.Logf("set %s", name)
 			set_called = set_called || name == "abc"
-			data := info.This().ToObject().GetInternalField(0).(*MyClass)
+			data := info.This().GetInternalField(0).(*MyClass)
 			data.name = value.ToString()
 			info.ReturnValue().Set(value)
 		},

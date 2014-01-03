@@ -12,18 +12,20 @@ import "reflect"
 // The superclass of all JavaScript values and objects.
 //
 type Value struct {
+	engine  *Engine
 	self    unsafe.Pointer
 	isType  int
 	notType int
 }
 
-func newValue(self unsafe.Pointer) *Value {
+func newValue(engine *Engine, self unsafe.Pointer) *Value {
 	if self == nil {
 		return nil
 	}
 
 	result := &Value{
-		self: self,
+		engine: engine,
+		self:   self,
 	}
 
 	runtime.SetFinalizer(result, func(v *Value) {
@@ -38,28 +40,28 @@ func newValue(self unsafe.Pointer) *Value {
 
 func (e *Engine) Undefined() *Value {
 	if e._undefined == nil {
-		e._undefined = newValue(C.V8_Undefined(e.self))
+		e._undefined = newValue(e, C.V8_Undefined(e.self))
 	}
 	return e._undefined
 }
 
 func (e *Engine) Null() *Value {
 	if e._null == nil {
-		e._null = newValue(C.V8_Null(e.self))
+		e._null = newValue(e, C.V8_Null(e.self))
 	}
 	return e._null
 }
 
 func (e *Engine) True() *Value {
 	if e._true == nil {
-		e._true = newValue(C.V8_True(e.self))
+		e._true = newValue(e, C.V8_True(e.self))
 	}
 	return e._true
 }
 
 func (e *Engine) False() *Value {
 	if e._false == nil {
-		e._false = newValue(C.V8_False(e.self))
+		e._false = newValue(e, C.V8_False(e.self))
 	}
 	return e._false
 }
@@ -72,20 +74,20 @@ func (e *Engine) NewBoolean(value bool) *Value {
 }
 
 func (e *Engine) NewNumber(value float64) *Value {
-	return newValue(C.V8_NewNumber(
+	return newValue(e, C.V8_NewNumber(
 		e.self, C.double(value),
 	))
 }
 
 func (e *Engine) NewInteger(value int64) *Value {
-	return newValue(C.V8_NewNumber(
+	return newValue(e, C.V8_NewNumber(
 		e.self, C.double(value),
 	))
 }
 
 func (e *Engine) NewString(value string) *Value {
 	valPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&value)).Data)
-	return newValue(C.V8_NewString(
+	return newValue(e, C.V8_NewString(
 		e.self, (*C.char)(valPtr), C.int(len(value)),
 	))
 }
@@ -121,28 +123,28 @@ func (v *Value) ToObject() *Object {
 	if v == nil {
 		return nil
 	}
-	return &Object{v}
+	return &Object{v, 0, nil}
 }
 
 func (v *Value) ToArray() *Array {
 	if v == nil {
 		return nil
 	}
-	return &Array{&Object{v}}
+	return &Array{&Object{v, 0, nil}}
 }
 
 func (v *Value) ToRegExp() *RegExp {
 	if v == nil {
 		return nil
 	}
-	return &RegExp{&Object{v}, "", false, RF_None, false}
+	return &RegExp{&Object{v, 0, nil}, "", false, RF_None, false}
 }
 
 func (v *Value) ToFunction() *Function {
 	if v == nil {
 		return nil
 	}
-	return &Function{&Object{v}}
+	return &Function{&Object{v, 0, nil}}
 }
 
 func (v *Value) String() string {

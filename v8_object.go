@@ -21,10 +21,12 @@ const (
 //
 type Object struct {
 	*Value
+	fieldOwnerId   int64
+	internalFields []interface{}
 }
 
 func (e *Engine) NewObject() *Value {
-	return newValue(C.V8_NewObject(e.self))
+	return newValue(e, C.V8_NewObject(e.self))
 }
 
 func (o *Object) SetProperty(key string, value *Value, attribs PropertyAttribute) bool {
@@ -36,7 +38,7 @@ func (o *Object) SetProperty(key string, value *Value, attribs PropertyAttribute
 
 func (o *Object) GetProperty(key string) *Value {
 	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&key)).Data)
-	return newValue(C.V8_Object_GetProperty(
+	return newValue(o.engine, C.V8_Object_GetProperty(
 		o.self, (*C.char)(keyPtr), C.int(len(key)),
 	))
 }
@@ -48,7 +50,7 @@ func (o *Object) SetElement(index int, value *Value) bool {
 }
 
 func (o *Object) GetElement(index int) *Value {
-	return newValue(C.V8_Object_GetElement(o.self, C.uint32_t(index)))
+	return newValue(o.engine, C.V8_Object_GetElement(o.self, C.uint32_t(index)))
 }
 
 func (o *Object) GetPropertyAttributes(key string) PropertyAttribute {
@@ -73,6 +75,23 @@ func (o *Object) SetInternalField(index int, value interface{}) {
 		C.int(index),
 		unsafe.Pointer(&value),
 	)
+
+	// keep the value reference
+	// make the value can't destory by GC
+	if index >= len(o.internalFields) {
+		newInternalFields := make([]interface{}, index+1)
+		copy(newInternalFields, o.internalFields)
+		o.internalFields = newInternalFields
+	}
+	o.internalFields[index] = value
+
+	// keep the object reference
+	if o.fieldOwnerId == 0 {
+		o.engine.fieldOwnerId += 1
+		o.fieldOwnerId = o.engine.fieldOwnerId
+		o.engine.fieldOwners[o.fieldOwnerId] = o
+		C.V8_Object_SetFieldOwnerInfo(o.self, unsafe.Pointer(o.engine), C.int64_t(o.fieldOwnerId))
+	}
 }
 
 // Sets a local property on this object bypassing interceptors and
@@ -131,7 +150,7 @@ func (o *Object) DeleteElement(index int) bool {
 // be enumerated by a for-in statement over this object.
 //
 func (o *Object) GetPropertyNames() *Array {
-	return newValue(C.V8_Object_GetPropertyNames(o.self)).ToArray()
+	return newValue(o.engine, C.V8_Object_GetPropertyNames(o.self)).ToArray()
 }
 
 // This function has the same functionality as GetPropertyNames but
@@ -139,7 +158,7 @@ func (o *Object) GetPropertyNames() *Array {
 // prototype objects.
 //
 func (o *Object) GetOwnPropertyNames() *Array {
-	return newValue(C.V8_Object_GetOwnPropertyNames(o.self)).ToArray()
+	return newValue(o.engine, C.V8_Object_GetOwnPropertyNames(o.self)).ToArray()
 }
 
 // Get the prototype object.  This does not skip objects marked to
@@ -147,7 +166,7 @@ func (o *Object) GetOwnPropertyNames() *Array {
 // handler.
 //
 func (o *Object) GetPrototype() *Object {
-	return newValue(C.V8_Object_GetPrototype(o.self)).ToObject()
+	return newValue(o.engine, C.V8_Object_GetPrototype(o.self)).ToObject()
 }
 
 // Set the prototype object.  This does not skip objects marked to
@@ -165,7 +184,7 @@ type Array struct {
 }
 
 func (e *Engine) NewArray(length int) *Value {
-	return newValue(C.V8_NewArray(
+	return newValue(e, C.V8_NewArray(
 		e.self, C.int(length),
 	))
 }
@@ -206,7 +225,7 @@ type RegExp struct {
 func (e *Engine) NewRegExp(pattern string, flags RegExpFlags) *Value {
 	patternPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&pattern)).Data)
 
-	return newValue(C.V8_NewRegExp(
+	return newValue(e, C.V8_NewRegExp(
 		e.self, (*C.char)(patternPtr), C.int(len(pattern)), C.int(flags),
 	))
 }

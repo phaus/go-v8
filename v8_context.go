@@ -121,5 +121,5 @@ func go_message_callback(message, callback, data unsafe.Pointer) {
 }
 
 func (cs ContextScope) Global() *Object {
-	return newValue(C.V8_Context_Global(cs.context.self)).ToObject()
+	return newValue(cs.GetEngine(), C.V8_Context_Global(cs.context.self)).ToObject()
 }

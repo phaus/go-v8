@@ -52,21 +52,6 @@ typedef struct {
 } V8_PropertyCallbackInfo;
 
 /*
-V8
-*/
-extern const char* V8_GetVersion();
-
-extern void V8_SetFlagsFromString(const char* str, int length);
-
-extern void* V8_SetArrayBufferAllocator(void* raw, void* ac, void* fc);
-
-extern void V8_Dispose_Allocator(void* raw);
-
-extern void V8_AddMessageListener(void* context, void* callback, void* data, int simple);
-
-extern void V8_SetCaptureStackTraceForUncaughtExceptions(int capture, int frame_limit);
-
-/*
 engine
 */
 extern void* V8_NewEngine();
@@ -237,6 +222,8 @@ extern void* V8_Object_GetInternalField(void* value, int index);
 
 extern void V8_Object_SetInternalField(void* value, int index, void* data);
 
+extern void V8_Object_SetFieldOwnerInfo(void* value, void* engine, int64_t ownerId);
+
 extern void* V8_AccessorCallbackInfo_This(void *info, AccessorDataEnum type);
 
 extern void* V8_AccessorCallbackInfo_Holder(void *info, AccessorDataEnum type);
@@ -349,6 +336,23 @@ extern void* V8_FunctionTemplate_GetFunction(void* tpl);
 extern void V8_FunctionTemplate_SetClassName(void* tpl, const char* name, int name_length);
 
 extern void* V8_FunctionTemplate_InstanceTemplate(void* tpl);
+
+/*
+V8
+*/
+extern const char* V8_GetVersion();
+
+extern void V8_ForceGC();
+
+extern void V8_SetFlagsFromString(const char* str, int length);
+
+extern void* V8_SetArrayBufferAllocator(void* raw, void* ac, void* fc);
+
+extern void V8_Dispose_Allocator(void* raw);
+
+extern void V8_AddMessageListener(void* context, void* callback, void* data, int simple);
+
+extern void V8_SetCaptureStackTraceForUncaughtExceptions(int capture, int frame_limit);
 
 #ifdef __cplusplus
 } // extern "C"

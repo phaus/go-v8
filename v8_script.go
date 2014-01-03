@@ -64,7 +64,7 @@ func (e *Engine) Compile(code []byte, origin *ScriptOrigin, data *ScriptData) *S
 // Runs the script returning the resulting value.
 //
 func (cs ContextScope) Run(s *Script) *Value {
-	return newValue(C.V8_Script_Run(s.self))
+	return newValue(cs.GetEngine(), C.V8_Script_Run(s.self))
 }
 
 // Pre-compilation data that can be associated with a script.  This

@@ -6,7 +6,6 @@ package v8
 import "C"
 import "unsafe"
 import "reflect"
-import "runtime"
 
 var (
 	jsonObjectBegin = []byte("{")
@@ -30,7 +29,7 @@ func (cs ContextScope) Eval(code string) *Value {
 
 func (cs ContextScope) ParseJSON(json string) *Value {
 	jsonPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&json)).Data)
-	return newValue(C.V8_ParseJSON(cs.context.self, (*C.char)(jsonPtr), C.int(len(json))))
+	return newValue(cs.GetEngine(), C.V8_ParseJSON(cs.context.self, (*C.char)(jsonPtr), C.int(len(json))))
 }
 
 func ToJSON(value *Value) []byte {
@@ -105,79 +104,4 @@ func AppendJSON(dst []byte, value *Value) []byte {
 	}
 
 	return dst
-}
-
-func GetVersion() string {
-	return C.GoString(C.V8_GetVersion())
-}
-
-func SetFlagsFromString(cmd string) {
-	cs := C.CString(cmd)
-	defer C.free(unsafe.Pointer(cs))
-	C.V8_SetFlagsFromString(cs, C.int(len(cmd)))
-}
-
-type ArrayBufferAllocateCallback func(int, bool) unsafe.Pointer
-type ArrayBufferFreeCallback func(unsafe.Pointer, int)
-
-type ArrayBufferAllocator struct {
-	self unsafe.Pointer
-}
-
-// Call this to get a new ArrayBufferAllocator
-func newArrayBufferAllocator() *ArrayBufferAllocator {
-	allocator := &ArrayBufferAllocator{}
-	runtime.SetFinalizer(allocator, func(allocator *ArrayBufferAllocator) {
-		if allocator.self == nil {
-			return
-		}
-		if traceDispose {
-			println("dispose array buffer allocator", allocator.self)
-		}
-		C.V8_Dispose_Allocator(allocator.self)
-	})
-	return allocator
-}
-
-// Call SetArrayBufferAllocator first if you want use any of
-// ArrayBuffer, ArrayBufferView, Int8Array...
-// Please be sure to call this function once and keep allocator
-// Please set ac and fc to nil if you don't want a custom one
-func SetArrayBufferAllocator(
-	ac ArrayBufferAllocateCallback,
-	fc ArrayBufferFreeCallback,
-) {
-	var acPointer, fcPointer unsafe.Pointer
-	if ac != nil {
-		acPointer = unsafe.Pointer(&ac)
-	}
-	if fc != nil {
-		fcPointer = unsafe.Pointer(&fc)
-	}
-
-	gMutex.Lock()
-	defer gMutex.Unlock()
-	gAllocator.self = C.V8_SetArrayBufferAllocator(
-		gAllocator.self,
-		acPointer,
-		fcPointer)
-}
-
-//export go_array_buffer_allocate
-func go_array_buffer_allocate(callback unsafe.Pointer, length C.size_t, initialized C.int) unsafe.Pointer {
-	return (*(*ArrayBufferAllocateCallback)(callback))(int(length), initialized != 0)
-}
-
-//export go_array_buffer_free
-func go_array_buffer_free(callback unsafe.Pointer, data unsafe.Pointer, length C.size_t) {
-	(*(*ArrayBufferFreeCallback)(callback))(data, int(length))
-}
-
-func SetCaptureStackTraceForUncaughtExceptions(capture bool, frameLimit int) {
-	icapture := 0
-	if capture {
-		icapture = 1
-	}
-
-	C.V8_SetCaptureStackTraceForUncaughtExceptions(C.int(icapture), C.int(frameLimit))
 }

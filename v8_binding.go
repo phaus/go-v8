@@ -34,7 +34,7 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 		objTemplate.SetNamedPropertyHandler(
 			// get
 			func(name string, info PropertyCallbackInfo) {
-				value := info.This().ToObject().GetInternalField(0).(*reflect.Value)
+				value := info.This().GetInternalField(0).(*reflect.Value)
 
 				field := value.Elem().FieldByName(name)
 
@@ -54,7 +54,7 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 			},
 			// set
 			func(name string, jsvalue *Value, info PropertyCallbackInfo) {
-				value := info.This().ToObject().GetInternalField(0).(*reflect.Value).Elem()
+				value := info.This().GetInternalField(0).(*reflect.Value).Elem()
 
 				field := value.FieldByName(name)
 

@@ -31,7 +31,7 @@ const (
 
 type ObjectTemplate struct {
 	sync.Mutex
-	id                 int
+	id                 int64
 	engine             *Engine
 	accessors          map[string]*accessorInfo
 	namedInfo          *namedPropertyInfo
@@ -130,7 +130,7 @@ func (e *Engine) MakeObject(ot *ObjectTemplate) *Value {
 		return nil
 	}
 
-	return newValue(C.V8_ObjectTemplate_NewObject(e.self, ot.self))
+	return newValue(e, C.V8_ObjectTemplate_NewObject(e.self, ot.self))
 }
 
 func (ot *ObjectTemplate) WrapObject(value *Value) {
@@ -323,11 +323,11 @@ func (p PropertyCallbackInfo) CurrentScope() ContextScope {
 }
 
 func (p PropertyCallbackInfo) This() *Object {
-	return newValue(C.V8_PropertyCallbackInfo_This(p.self, p.typ)).ToObject()
+	return newValue(p.context.engine, C.V8_PropertyCallbackInfo_This(p.self, p.typ)).ToObject()
 }
 
 func (p PropertyCallbackInfo) Holder() *Object {
-	return newValue(C.V8_PropertyCallbackInfo_Holder(p.self, p.typ)).ToObject()
+	return newValue(p.context.engine, C.V8_PropertyCallbackInfo_Holder(p.self, p.typ)).ToObject()
 }
 
 func (p PropertyCallbackInfo) Data() interface{} {
@@ -356,11 +356,11 @@ func (ac AccessorCallbackInfo) CurrentScope() ContextScope {
 }
 
 func (ac AccessorCallbackInfo) This() *Object {
-	return newValue(C.V8_AccessorCallbackInfo_This(ac.self, ac.typ)).ToObject()
+	return newValue(ac.context.engine, C.V8_AccessorCallbackInfo_This(ac.self, ac.typ)).ToObject()
 }
 
 func (ac AccessorCallbackInfo) Holder() *Object {
-	return newValue(C.V8_AccessorCallbackInfo_Holder(ac.self, ac.typ)).ToObject()
+	return newValue(ac.context.engine, C.V8_AccessorCallbackInfo_Holder(ac.self, ac.typ)).ToObject()
 }
 
 func (ac AccessorCallbackInfo) Data() interface{} {
@@ -385,16 +385,17 @@ func go_accessor_callback(typ C.AccessorDataEnum, info *C.V8_AccessorCallbackInf
 		Len:  int(info.key_length),
 	}
 	gname := *((*string)(unsafe.Pointer(&name)))
+	gcontext := (*Context)(context)
 	switch typ {
 	case C.OTA_Getter:
 		(*(*AccessorGetterCallback)(info.callback))(
 			gname,
-			AccessorCallbackInfo{unsafe.Pointer(info), *(*interface{})(info.data), ReturnValue{}, (*Context)(context), typ})
+			AccessorCallbackInfo{unsafe.Pointer(info), *(*interface{})(info.data), ReturnValue{}, gcontext, typ})
 	case C.OTA_Setter:
 		(*(*AccessorSetterCallback)(info.callback))(
 			gname,
-			newValue(info.setValue),
-			AccessorCallbackInfo{unsafe.Pointer(info), *(*interface{})(info.data), ReturnValue{}, (*Context)(context), typ})
+			newValue(gcontext.engine, info.setValue),
+			AccessorCallbackInfo{unsafe.Pointer(info), *(*interface{})(info.data), ReturnValue{}, gcontext, typ})
 	default:
 		panic("impossible type")
 	}
@@ -406,47 +407,49 @@ func go_named_property_callback(typ C.PropertyDataEnum, info *C.V8_PropertyCallb
 	if info.key != nil {
 		gname = C.GoString(info.key)
 	}
+	gcontext := (*Context)(context)
 	switch typ {
 	case C.OTP_Getter:
 		(*(*NamedPropertyGetterCallback)(info.callback))(
-			gname, PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
+			gname, PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, gcontext})
 	case C.OTP_Setter:
 		(*(*NamedPropertySetterCallback)(info.callback))(
 			gname,
-			newValue(info.setValue),
-			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
+			newValue(gcontext.engine, info.setValue),
+			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, gcontext})
 	case C.OTP_Deleter:
 		(*(*NamedPropertyDeleterCallback)(info.callback))(
-			gname, PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
+			gname, PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, gcontext})
 	case C.OTP_Query:
 		(*(*NamedPropertyQueryCallback)(info.callback))(
-			gname, PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
+			gname, PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, gcontext})
 	case C.OTP_Enumerator:
 		(*(*NamedPropertyEnumeratorCallback)(info.callback))(
-			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
+			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, gcontext})
 	}
 }
 
 //export go_indexed_property_callback
 func go_indexed_property_callback(typ C.PropertyDataEnum, info *C.V8_PropertyCallbackInfo, context unsafe.Pointer) {
+	gcontext := (*Context)(context)
 	switch typ {
 	case C.OTP_Getter:
 		(*(*IndexedPropertyGetterCallback)(info.callback))(
-			uint32(info.index), PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
+			uint32(info.index), PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, gcontext})
 	case C.OTP_Setter:
 		(*(*IndexedPropertySetterCallback)(info.callback))(
 			uint32(info.index),
-			newValue(info.setValue),
-			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
+			newValue(gcontext.engine, info.setValue),
+			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, gcontext})
 	case C.OTP_Deleter:
 		(*(*IndexedPropertyDeleterCallback)(info.callback))(
-			uint32(info.index), PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
+			uint32(info.index), PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, gcontext})
 	case C.OTP_Query:
 		(*(*IndexedPropertyQueryCallback)(info.callback))(
-			uint32(info.index), PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
+			uint32(info.index), PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, gcontext})
 	case C.OTP_Enumerator:
 		(*(*IndexedPropertyEnumeratorCallback)(info.callback))(
-			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
+			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, gcontext})
 	}
 }
 
@@ -480,7 +483,7 @@ type FunctionCallback func(FunctionCallbackInfo)
 
 type FunctionTemplate struct {
 	sync.Mutex
-	id       int
+	id       int64
 	engine   *Engine
 	callback FunctionCallback
 	data     interface{}
@@ -533,7 +536,7 @@ func (ft *FunctionTemplate) NewFunction() *Value {
 		return nil
 	}
 
-	return newValue(C.V8_FunctionTemplate_GetFunction(ft.self))
+	return newValue(ft.engine, C.V8_FunctionTemplate_GetFunction(ft.self))
 }
 
 func (ft *FunctionTemplate) SetClassName(name string) {
@@ -571,7 +574,7 @@ func (f *Function) Call(args ...*Value) *Value {
 	for i, arg := range args {
 		argv[i] = arg.self
 	}
-	return newValue(C.V8_Function_Call(
+	return newValue(f.engine, C.V8_Function_Call(
 		f.self, C.int(len(args)),
 		unsafe.Pointer((*reflect.SliceHeader)(unsafe.Pointer(&argv)).Data),
 	))
@@ -634,7 +637,7 @@ func (fc FunctionCallbackInfo) CurrentScope() ContextScope {
 }
 
 func (fc FunctionCallbackInfo) Get(i int) *Value {
-	return newValue(C.V8_FunctionCallbackInfo_Get(fc.self, C.int(i)))
+	return newValue(fc.context.engine, C.V8_FunctionCallbackInfo_Get(fc.self, C.int(i)))
 }
 
 func (fc FunctionCallbackInfo) Length() int {
@@ -642,15 +645,15 @@ func (fc FunctionCallbackInfo) Length() int {
 }
 
 func (fc FunctionCallbackInfo) Callee() *Function {
-	return newValue(C.V8_FunctionCallbackInfo_Callee(fc.self)).ToFunction()
+	return newValue(fc.context.engine, C.V8_FunctionCallbackInfo_Callee(fc.self)).ToFunction()
 }
 
 func (fc FunctionCallbackInfo) This() *Object {
-	return newValue(C.V8_FunctionCallbackInfo_This(fc.self)).ToObject()
+	return newValue(fc.context.engine, C.V8_FunctionCallbackInfo_This(fc.self)).ToObject()
 }
 
 func (fc FunctionCallbackInfo) Holder() *Object {
-	return newValue(C.V8_FunctionCallbackInfo_Holder(fc.self)).ToObject()
+	return newValue(fc.context.engine, C.V8_FunctionCallbackInfo_Holder(fc.self)).ToObject()
 }
 
 func (fc FunctionCallbackInfo) Data() interface{} {

@@ -101,19 +101,43 @@ public:
 	Persistent<Script> self;
 };
 
+class V8_FieldOwnerInfo {
+public:
+	V8_FieldOwnerInfo(void* e, int64_t o) : engine(e), ownerId(o) {
+
+	}
+
+	void*   engine;
+	int64_t ownerId;
+};
+
+// implement by Go
+extern void v8_field_owner_weak_callback(void* engine, int64_t ownerId);
+
+void FieldOwnerWeakCallback(const WeakCallbackData<Value, V8_FieldOwnerInfo> &data) {
+	V8_FieldOwnerInfo* info = data.GetParameter();
+	v8_field_owner_weak_callback(info->engine, info->ownerId);
+	delete info;
+}
+
 class V8_Value {
 public:
 	V8_Value(V8_Context* the_context, Handle<Value> value) {
 		isolate_ = the_context->GetIsolate();
 		self.Reset(isolate_, value);
 		context_handler.Reset(isolate_, the_context->self);
+		fieldOwnerInfo = NULL;
 	}
 
 	~V8_Value() {
 		Locker locker(isolate_);
 		Isolate::Scope isolate_scope(isolate_);
 
-		self.Reset();
+		if (fieldOwnerInfo == NULL) {
+			self.Reset();
+		} else {
+			self.SetWeak<V8_FieldOwnerInfo>(fieldOwnerInfo, FieldOwnerWeakCallback);	
+		}
 		context_handler.Reset();
 	}
 
@@ -121,9 +145,10 @@ public:
 		return isolate_;
 	}
 
-	Isolate* isolate_;
-	Persistent<Value> self;
+	Isolate*            isolate_;
+	Persistent<Value>   self;
 	Persistent<Context> context_handler;
+	V8_FieldOwnerInfo*  fieldOwnerInfo;
 };
 
 typedef struct V8_ReturnValue {
@@ -716,6 +741,11 @@ void V8_Object_SetInternalField(void* value, int index, void* data) {
 	VALUE_SCOPE(value);
 	Local<Object> obj = Local<Object>::Cast(local_value);
 	obj->SetInternalField(index, External::New(isolate, data));
+}
+
+void V8_Object_SetFieldOwnerInfo(void* value, void* engine, int64_t ownerId) {
+	V8_Value* the_value = static_cast<V8_Value*>(value);
+	the_value->fieldOwnerInfo = new V8_FieldOwnerInfo(engine, ownerId);
 }
 
 int V8_Object_SetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {
@@ -1524,8 +1554,15 @@ void* V8_FunctionTemplate_InstanceTemplate(void* tpl) {
 	return new V8_ObjectTemplate(the_template->engine, local_template->InstanceTemplate());
 }
 
+/*
+V8
+*/
 const char* V8_GetVersion() {
 	return V8::GetVersion();
+}
+
+void V8_ForceGC() {
+	while(!V8::IdleNotification()) {};
 }
 
 void V8_SetFlagsFromString(const char* str, int length) {
