@@ -57,6 +57,7 @@ func init() {
 func Test_InternalField(t *testing.T) {
 	iCache := make([]interface{}, 0)
 	ot := engine.NewObjectTemplate()
+	ot.SetInternalFieldCount(11)
 	context := engine.NewContext(nil)
 	context.SetPrivateData(iCache)
 	context.Scope(func(cs ContextScope) {
