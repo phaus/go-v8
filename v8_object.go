@@ -76,16 +76,10 @@ func (o *Object) SetInternalField(index int, value interface{}) {
 		unsafe.Pointer(&value),
 	)
 
-	// keep the value reference
-	// make the value can't destory by GC
-	if index >= len(o.internalFields) {
-		newInternalFields := make([]interface{}, index+1)
-		copy(newInternalFields, o.internalFields)
-		o.internalFields = newInternalFields
-	}
-	o.internalFields[index] = value
+	// the value reference by object so the value can't destory by GC
+	o.internalFields = append(o.internalFields, value)
 
-	// keep the object reference
+	// the object reference by engine
 	if o.fieldOwnerId == 0 {
 		o.engine.fieldOwnerId += 1
 		o.fieldOwnerId = o.engine.fieldOwnerId
