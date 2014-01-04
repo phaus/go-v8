@@ -6,10 +6,10 @@ import (
 )
 
 //
-// Fast bind Go type or function to JS.
-// NOTE: The function template and object template created in fast bind internal are never destroyed.
-// NOTE: The JS class map to Go type use a internal field to reference a Go object when it instanced.
-//       All of the internal field keep reference by engine. So, may be you don't like to create too many instance of them.
+// Fast bind Go type or function to JS. Note, The function template and object template
+// created in fast bind internal are never destroyed. The JS class map to Go type use a
+// internal field to reference a Go object when it instanced. All of the internal field
+// keep reference by engine. So, may be you don't like to create too many instance of them.
 //
 func (template *ObjectTemplate) Bind(typeName string, target interface{}) error {
 	engine := template.engine
