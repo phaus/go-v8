@@ -532,8 +532,8 @@ void* V8_NewScriptOrigin(void* engine, const char* name, int name_length, int li
 
 	return (void*)(new ScriptOrigin(
 		String::NewFromOneByte(isolate, (uint8_t*)name, String::kNormalString, name_length),
-		Integer::New(line_offset),
-		Integer::New(line_offset)
+		Integer::New(isolate, line_offset),
+		Integer::New(isolate, line_offset)
 	));
 }
 
@@ -722,7 +722,7 @@ object
 void* V8_NewObject(void* engine) {
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
 	ISOLATE_SCOPE(the_engine->GetIsolate());
-	return new_V8_Value(the_engine, Object::New());
+	return new_V8_Value(the_engine, Object::New(isolate));
 }
 
 int V8_Object_InternalFieldCount(void* value) {
@@ -933,7 +933,7 @@ void V8_Object_SetAccessor(void *value, const char* key, int key_length, void* g
 	callback_info->Set(OTA_Getter, External::New(isolate, getter));
 	callback_info->Set(OTA_Setter, External::New(isolate, setter));
 	callback_info->Set(OTA_KeyString, External::New(isolate, (void*)key));
-	callback_info->Set(OTA_KeyLength, Integer::New(key_length));
+	callback_info->Set(OTA_KeyLength, Integer::New(isolate, key_length));
 	callback_info->Set(OTA_Data, External::New(isolate, data));
 
 	if (callback_info.IsEmpty())
@@ -1303,7 +1303,7 @@ void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, v
 	callback_info->Set(1, External::New(isolate, getter));
 	callback_info->Set(2, External::New(isolate, setter));
 	callback_info->Set(3, External::New(isolate, (void*)key));
-	callback_info->Set(4, Integer::New(key_length));
+	callback_info->Set(4, Integer::New(isolate, key_length));
 	callback_info->Set(5, External::New(isolate, data));
 
 	if (callback_info.IsEmpty())
@@ -1522,8 +1522,8 @@ void* V8_NewFunctionTemplate(void* engine, void* callback, void* data) {
 	callback_data->Set(1, External::New(isolate, callback));
 	callback_data->Set(2, External::New(isolate, data));
 
-	Handle<FunctionTemplate> tpl = callback == NULL ? FunctionTemplate::New() : FunctionTemplate::New(
-		V8_FunctionCallback, callback_data
+	Handle<FunctionTemplate> tpl = callback == NULL ? FunctionTemplate::New(isolate) : FunctionTemplate::New(
+		isolate, V8_FunctionCallback, callback_data
 	);
 
 	if (tpl.IsEmpty())
