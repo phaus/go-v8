@@ -18,6 +18,7 @@ var (
 	jsonTrue        = []byte("true")
 	jsonFalse       = []byte("false")
 	jsonNull        = []byte("null")
+	jsonDateFormat  = "2006-01-02T15:04:05Z0700"
 )
 
 func (cs ContextScope) Eval(code string) *Value {
@@ -49,6 +50,11 @@ func AppendJSON(dst []byte, value *Value) []byte {
 			}
 		}
 		dst = append(dst, jsonArrayEnd...)
+	case value.IsDate():
+		dst = append(dst, jsonQuote...)
+		date := value.ToTime()
+		dst = append(dst, date.Format(jsonDateFormat)...)
+		dst = append(dst, jsonQuote...)
 	case value.IsObject():
 		dst = append(dst, jsonObjectBegin...)
 		object := value.ToObject()
