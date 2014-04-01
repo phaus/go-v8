@@ -708,6 +708,12 @@ void* V8_NewNumber(void* engine, double val) {
 	return new_V8_Value(the_engine, Number::New(isolate, val));
 }
 
+void* V8_NewDate(void* engine, double val) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	return new_V8_Value(the_engine, Date::New(isolate, val));
+}
+
 void* V8_NewString(void* engine, const char* val, int val_length) {
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
 	ISOLATE_SCOPE(the_engine->GetIsolate());

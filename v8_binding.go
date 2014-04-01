@@ -3,6 +3,7 @@ package v8
 import (
 	"errors"
 	"reflect"
+	"time"
 )
 
 //
@@ -131,6 +132,11 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 		return jsObjectVal
 	case reflect.Func:
 		return engine.GoFuncToJsFunc(value).NewFunction()
+	case reflect.Struct:
+		switch value.Interface().(type) {
+		case time.Time:
+			return engine.NewDate(value.Interface().(time.Time))
+		}
 	}
 	return engine.Undefined()
 }
