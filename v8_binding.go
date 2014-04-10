@@ -170,7 +170,12 @@ func (engine *Engine) GoFuncToJsFunc(gofunc reflect.Value) *FunctionTemplate {
 			return
 		}
 
-		if len(out) > 0 {
+		switch {
+		// when Go function returns only one value
+		case len(out) == 1:
+			callbackInfo.ReturnValue().Set(engine.GoValueToJsValue(out[0]))
+		// when Go function returns multi-value, put them in a JavaScript array
+		case len(out) > 1:
 			jsResults := engine.NewArray(len(out))
 			jsResultsArray := jsResults.ToArray()
 
