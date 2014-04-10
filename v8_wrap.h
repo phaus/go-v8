@@ -175,6 +175,8 @@ extern void* V8_False(void* engine);
 
 extern void* V8_NewNumber(void* engine, double val);
 
+extern void* V8_NewDate(void* engine, double val);
+
 extern void* V8_NewString(void* engine, const char* val, int val_length);
 
 extern void* V8_NewExternal(void* engine, void* data);

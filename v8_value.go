@@ -8,6 +8,7 @@ import "C"
 import "unsafe"
 import "runtime"
 import "reflect"
+import "time"
 
 // The superclass of all JavaScript values and objects.
 //
@@ -79,6 +80,12 @@ func (e *Engine) NewNumber(value float64) *Value {
 	))
 }
 
+func (e *Engine) NewDate(value time.Time) *Value {
+	return newValue(e, C.V8_NewDate(
+		e.self, C.double(value.Unix()*1000),
+	))
+}
+
 func (e *Engine) NewInteger(value int64) *Value {
 	return newValue(e, C.V8_NewNumber(
 		e.self, C.double(value),
@@ -117,6 +124,10 @@ func (v *Value) ToString() string {
 	gostring := C.GoString(cstring)
 	C.free(unsafe.Pointer(cstring))
 	return gostring
+}
+
+func (v *Value) ToTime() time.Time {
+	return time.Unix(0, int64(C.V8_Value_ToInteger(v.self))*1e6)
 }
 
 func (v *Value) ToObject() *Object {
