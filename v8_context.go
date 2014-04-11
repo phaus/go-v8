@@ -97,6 +97,10 @@ func (cs ContextScope) TryCatch(simple bool, callback func()) string {
 	return report
 }
 
+func (cs ContextScope) TryCatch2(callback func()) error {
+	return (*Message)(C.V8_Context_TryCatch2(cs.context.self, unsafe.Pointer(&callback)))
+}
+
 type MessageCallback func(message string, data interface{})
 
 func (cs ContextScope) AddMessageListener(simple bool, callback MessageCallback, data interface{}) {

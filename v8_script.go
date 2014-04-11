@@ -29,19 +29,14 @@ func (e *Engine) PreCompile(code []byte) *ScriptData {
 // using pre_data speeds compilation if it's done multiple times.
 //
 func (e *Engine) Compile(code []byte, origin *ScriptOrigin, data *ScriptData) *Script {
-	var originPtr unsafe.Pointer
 	var dataPtr unsafe.Pointer
-
-	if origin != nil {
-		originPtr = origin.self
-	}
 
 	if data != nil {
 		dataPtr = data.self
 	}
 
 	codePtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&code)).Data)
-	self := C.V8_Compile(e.self, (*C.char)(codePtr), C.int(len(code)), originPtr, dataPtr)
+	self := C.V8_Compile(e.self, (*C.char)(codePtr), C.int(len(code)), unsafe.Pointer(origin), dataPtr)
 
 	if self == nil {
 		return nil
@@ -99,7 +94,7 @@ func newScriptData(self unsafe.Pointer) *ScriptData {
 //
 func NewScriptData(data []byte) *ScriptData {
 	return newScriptData(C.V8_NewScriptData(
-		(*C.char)((unsafe.Pointer)(((*reflect.SliceHeader)(unsafe.Pointer(&data))).Data)),
+		(*C.char)(unsafe.Pointer((*reflect.SliceHeader)(unsafe.Pointer(&data)).Data)),
 		C.int(len(data)),
 	))
 }
@@ -129,33 +124,42 @@ func (sd *ScriptData) HasError() bool {
 // The origin, within a file, of a script.
 //
 type ScriptOrigin struct {
-	self         unsafe.Pointer
 	Name         string
 	LineOffset   int
 	ColumnOffset int
 }
 
 func (e *Engine) NewScriptOrigin(name string, lineOffset, columnOffset int) *ScriptOrigin {
-	namePtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&name)).Data)
-	self := C.V8_NewScriptOrigin(e.self, (*C.char)(namePtr), C.int(len(name)), C.int(lineOffset), C.int(columnOffset))
-
-	if self == nil {
-		return nil
-	}
-
-	result := &ScriptOrigin{
-		self:         self,
+	return &ScriptOrigin{
 		Name:         name,
 		LineOffset:   lineOffset,
 		ColumnOffset: columnOffset,
 	}
+}
 
-	runtime.SetFinalizer(result, func(so *ScriptOrigin) {
-		if traceDispose {
-			println("v8.ScriptOrigin.Dispose()")
-		}
-		C.V8_DisposeScriptOrigin(so.self)
-	})
+//export go_script_origin_get_name
+func go_script_origin_get_name(p unsafe.Pointer) *C.char {
+	if p == nil {
+		return C.CString("")
+	}
+	o := (*ScriptOrigin)(p)
+	return C.CString(o.Name)
+}
 
-	return result
+//export go_script_origin_get_line
+func go_script_origin_get_line(p unsafe.Pointer) int {
+	if p == nil {
+		return 0
+	}
+	o := (*ScriptOrigin)(p)
+	return o.LineOffset
+}
+
+//export go_script_origin_get_column
+func go_script_origin_get_column(p unsafe.Pointer) int {
+	if p == nil {
+		return 0
+	}
+	o := (*ScriptOrigin)(p)
+	return o.ColumnOffset
 }

@@ -136,7 +136,7 @@ public:
 		if (fieldOwnerInfo == NULL) {
 			self.Reset();
 		} else {
-			self.SetWeak<V8_FieldOwnerInfo>(fieldOwnerInfo, FieldOwnerWeakCallback);	
+			self.SetWeak<V8_FieldOwnerInfo>(fieldOwnerInfo, FieldOwnerWeakCallback);
 		}
 		context_handler.Reset();
 	}
@@ -324,12 +324,19 @@ void* V8_Current_ContextPtr(Isolate* isolate) {
 void* V8_Context_Global(void* context) {
 	CONTEXT_SCOPE(context);
 	Local<Context> local_context = Local<Context>::New(isolate, the_context->self);
-	return new_V8_Value(the_context, local_context->Global()); 
+	return new_V8_Value(the_context, local_context->Global());
 }
 
 // Extracts a C string from a V8 Utf8Value.
 const char* ToCString(const String::Utf8Value& value) {
   return *value ? *value : "<string conversion failed>";
+}
+
+char* CopyString(const String::Utf8Value& value) {
+	const char* value_string = *value ? *value : "";
+	char *cstr = (char*)malloc(value.length() + 1);
+	std::strcpy(cstr, value_string);
+	return cstr;
 }
 
 void V8_Context_ThrowException(void* context, const char* err, int err_length) {
@@ -382,7 +389,7 @@ char* V8_Message_ToString(Handle<Message>& message, Handle<Value>& exception, bo
 		Handle<StackFrame> frame = stackTrace->GetFrame(i);
 		String::Utf8Value script(frame->GetScriptNameOrSourceURL());
 		String::Utf8Value function(frame->GetFunctionName());
-		report << ToCString(script) << ":" << frame->GetLineNumber() << ToCString(function) << std::endl; 
+		report << ToCString(script) << ":" << frame->GetLineNumber() << ToCString(function) << std::endl;
 	}
 
 	std::string report_string = report.str();
@@ -455,17 +462,106 @@ char* V8_Context_TryCatch(void* context, void* callback, int simple) {
 	return cstr;
 }
 
+void* V8_Context_TryCatch2(void* context, void* callback) {
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+
+	TryCatch try_catch;
+
+	try_catch_callback(callback);
+
+	if (!try_catch.HasCaught()) {
+		return NULL;
+	}
+
+	String::Utf8Value exception(try_catch.Exception());
+	Handle<Message> message = try_catch.Message();
+
+	if (message.IsEmpty()) {
+		return make_message(
+			CopyString(exception),
+			NULL,
+			NULL,
+			NULL,
+			0,
+			0,
+			0,
+			0,
+			0
+		);
+	}
+
+	Handle<StackTrace> stack_trace = message->GetStackTrace();
+	void* go_stack_trace = make_stacktrace();
+
+	for (int i = 0; i < stack_trace->GetFrameCount(); ++i) {
+		Local<StackFrame> frame = stack_trace->GetFrame(i);
+		String::Utf8Value script_name(frame->GetScriptName());
+		String::Utf8Value script_name_or_url(frame->GetScriptNameOrSourceURL());
+		String::Utf8Value function_name(frame->GetFunctionName());
+
+		void* go_frame = make_stackframe(
+			frame->GetLineNumber(),
+			frame->GetColumn(),
+			frame->GetScriptId(),
+			CopyString(script_name),
+			CopyString(script_name_or_url),
+			CopyString(function_name),
+			frame->IsEval(),
+			frame->IsConstructor()
+		);
+
+		push_stackframe(go_stack_trace, go_frame);
+	}
+
+	String::Utf8Value message_str(message->Get());
+	String::Utf8Value source_line(message->GetSourceLine());
+	String::Utf8Value script_resource_name(message->GetScriptResourceName());
+
+	void* go_message = make_message(
+		CopyString(message_str),
+		CopyString(source_line),
+		CopyString(script_resource_name),
+		go_stack_trace,
+		message->GetLineNumber(),
+		message->GetStartPosition(),
+		message->GetEndPosition(),
+		message->GetStartColumn(),
+		message->GetEndColumn()
+	);
+
+	return go_message;
+}
+
 /*
 script
 */
-void* V8_Compile(void* engine, const char* code, int length, void* script_origin,void* script_data) {
+void* V8_Compile(void* engine, const char* code, int length, void* go_script_origin,void* script_data) {
 	ENGINE_SCOPE(engine);
 
 	HandleScope handle_scope(isolate);
 
+	ScriptOrigin script_origin(String::NewFromUtf8(isolate, ""));
+	ScriptOrigin* script_origin_ptr = NULL;
+
+	if (go_script_origin) {
+		script_origin_ptr = &script_origin;
+		char * cstr = go_script_origin_get_name(go_script_origin);
+		int line    = go_script_origin_get_line(go_script_origin);
+		int column  = go_script_origin_get_line(go_script_origin);
+
+		script_origin = ScriptOrigin(
+			String::NewFromUtf8(isolate, cstr),
+			Integer::New(isolate, line),
+			Integer::New(isolate, column)
+		);
+
+		free(cstr);
+	}
+
 	Handle<Script> script = Script::New(
 		String::NewFromOneByte(isolate, (uint8_t*)code, String::kNormalString, length),
-		static_cast<ScriptOrigin*>(script_origin),
+		script_origin_ptr,
 		static_cast<ScriptData*>(script_data),
 		Handle<String>()
 	);
@@ -533,7 +629,7 @@ void* V8_NewScriptOrigin(void* engine, const char* name, int name_length, int li
 	return (void*)(new ScriptOrigin(
 		String::NewFromOneByte(isolate, (uint8_t*)name, String::kNormalString, name_length),
 		Integer::New(isolate, line_offset),
-		Integer::New(isolate, line_offset)
+		Integer::New(isolate, column_offset)
 	));
 }
 
@@ -1323,11 +1419,11 @@ void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, v
 }
 
 void V8_NamedPropertyGetterCallbackBase(
-	PropertyDataEnum typ, 
-	Local<String> property, 
-	Local<Value> value, 
+	PropertyDataEnum typ,
+	Local<String> property,
+	Local<Value> value,
 	void* info_ptr,
-	Isolate* isolate_ptr, 
+	Isolate* isolate_ptr,
 	Local<Value> callback_data_val
 ) {
     ISOLATE_SCOPE(isolate_ptr);
@@ -1386,12 +1482,12 @@ void V8_NamedPropertyEnumeratorCallback(const PropertyCallbackInfo<Array> &info)
 }
 
 void V8_ObjectTemplate_SetNamedPropertyHandler(
-	void* tpl, 
-	void* getter, 
-	void* setter, 
-	void* query, 
-	void* deleter, 
-	void* enumerator, 
+	void* tpl,
+	void* getter,
+	void* setter,
+	void* query,
+	void* deleter,
+	void* enumerator,
 	void* data
 ) {
 	OBJECT_TEMPLATE_HANDLE_SCOPE(tpl);
@@ -1409,7 +1505,7 @@ void V8_ObjectTemplate_SetNamedPropertyHandler(
 		return;
 
 	local_template->SetNamedPropertyHandler(
-		V8_NamedPropertyGetterCallback, 
+		V8_NamedPropertyGetterCallback,
 		setter == NULL ? NULL : V8_NamedPropertySetterCallback,
 		query == NULL ? NULL : V8_NamedPropertyQueryCallback,
 		deleter == NULL ? NULL : V8_NamedPropertyDeleterCallback,
@@ -1419,11 +1515,11 @@ void V8_ObjectTemplate_SetNamedPropertyHandler(
 }
 
 void V8_IndexedPropertyGetterCallbackBase(
-	PropertyDataEnum typ, 
-	uint32_t index, 
-	Local<Value> value, 
+	PropertyDataEnum typ,
+	uint32_t index,
+	Local<Value> value,
 	void* info_ptr,
-	Isolate* isolate_ptr, 
+	Isolate* isolate_ptr,
 	Local<Value> callback_data_val
 ) {
     ISOLATE_SCOPE(isolate_ptr);
@@ -1473,16 +1569,16 @@ void V8_IndexedPropertyEnumeratorCallback(const PropertyCallbackInfo<Array> &inf
 }
 
 void V8_ObjectTemplate_SetIndexedPropertyHandler(
-	void* tpl, 
-	void* getter, 
-	void* setter, 
-	void* query, 
-	void* deleter, 
-	void* enumerator, 
+	void* tpl,
+	void* getter,
+	void* setter,
+	void* query,
+	void* deleter,
+	void* enumerator,
 	void* data
 ) {
 	OBJECT_TEMPLATE_HANDLE_SCOPE(tpl);
-	
+
 	Handle<Array> callback_info = Array::New(isolate, OTP_Num);
 	callback_info->Set(OTP_Context, External::New(isolate, (void*)the_template->engine));
 	callback_info->Set(OTP_Getter, External::New(isolate, getter));
@@ -1496,7 +1592,7 @@ void V8_ObjectTemplate_SetIndexedPropertyHandler(
 		return;
 
 	local_template->SetIndexedPropertyHandler(
-		V8_IndexedPropertyGetterCallback, 
+		V8_IndexedPropertyGetterCallback,
 		setter == NULL ? NULL : V8_IndexedPropertySetterCallback,
 		query == NULL ? NULL : V8_IndexedPropertyQueryCallback,
 		deleter == NULL ? NULL : V8_IndexedPropertyDeleterCallback,
@@ -1584,7 +1680,7 @@ class GoArrayBufferAllocator : public ArrayBuffer::Allocator {
 
 	virtual void* Allocate(size_t length) {
 		if(mAc != NULL) {
-			return go_array_buffer_allocate(mAc, length, true); 
+			return go_array_buffer_allocate(mAc, length, true);
 		}
 
 		void* result = malloc(length);
@@ -1604,7 +1700,7 @@ class GoArrayBufferAllocator : public ArrayBuffer::Allocator {
 			go_array_buffer_free(mFc, data, length);
 			return;
 		}
-		free(data); 
+		free(data);
 	}
 
 	void SetCallback(void* aAc, void* aFc) {
@@ -1642,7 +1738,7 @@ void V8_MessageCallback(Handle< Message > message, Handle< Value > error) {
 	void* data = Handle<External>::Cast(args->Get(1))->Value();
 	bool simple = args->Get(2)->BooleanValue();
 	Handle<Value> exception = message->Get();
-	const char* cmessage = V8_Message_ToString(message, exception, simple);	
+	const char* cmessage = V8_Message_ToString(message, exception, simple);
 	go_message_callback((void*)cmessage, callback, data);
 }
 
@@ -1664,7 +1760,7 @@ void V8_AddMessageListener(void* context, void* callback, void* data, int simple
 }
 
 void V8_SetCaptureStackTraceForUncaughtExceptions(int capture, int frame_limit) {
-	V8::SetCaptureStackTraceForUncaughtExceptions(capture, frame_limit);	
+	V8::SetCaptureStackTraceForUncaughtExceptions(capture, frame_limit);
 }
 
 } // extern "C"

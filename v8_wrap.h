@@ -79,6 +79,8 @@ extern void V8_Context_ThrowException(void* context, const char* err, int err_le
 
 extern char* V8_Context_TryCatch(void* context, void* callback, int simple);
 
+extern void* V8_Context_TryCatch2(void* context, void* callback);
+
 /*
 script
 */
@@ -154,7 +156,7 @@ extern int V8_Value_IsNativeError(void* value);
 extern int V8_Value_IsRegExp(void* value);
 
 extern int V8_Value_ToBoolean(void* value);
-  
+
 extern double V8_Value_ToNumber(void* value);
 
 extern int64_t V8_Value_ToInteger(void* value);
@@ -305,22 +307,22 @@ extern void* V8_ObjectTemplate_NewObject(void* engine, void* tpl);
 extern void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, void* getter, void* setter, void* data, int attribs);
 
 extern void V8_ObjectTemplate_SetNamedPropertyHandler(
-        void* tpl, 
-        void* getter, 
-        void* setter, 
-        void* query, 
-        void* deleter, 
-        void* enumerator, 
+        void* tpl,
+        void* getter,
+        void* setter,
+        void* query,
+        void* deleter,
+        void* enumerator,
         void* data
 );
 
 extern void V8_ObjectTemplate_SetIndexedPropertyHandler(
-        void* tpl, 
-        void* getter, 
-        void* setter, 
-        void* query, 
-        void* deleter, 
-        void* enumerator, 
+        void* tpl,
+        void* getter,
+        void* setter,
+        void* query,
+        void* deleter,
+        void* enumerator,
         void* data
 );
 

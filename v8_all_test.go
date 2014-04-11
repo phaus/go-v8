@@ -153,6 +153,85 @@ func Test_TryCatch(t *testing.T) {
 	runtime.GC()
 }
 
+func Test_TryCatch2(t *testing.T) {
+	SetCaptureStackTraceForUncaughtExceptions(true, 15)
+	defer SetCaptureStackTraceForUncaughtExceptions(false, 0)
+
+	engine.NewContext(nil).Scope(func(cs ContextScope) {
+		err := cs.TryCatch2(func() {
+			cs.Eval(`
+      	function a() {
+      		1+2;
+      		b();
+      		1+2;
+      	}
+
+      	function b() {
+      		throw new Error("a nice error");
+      	}
+
+      	a();
+      `)
+		})
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+
+		msg := err.(*Message)
+		if msg.Message != "Uncaught Error: a nice error" {
+			t.Fatalf("msg.Message: should be %q not %q", "Uncaught Error: a nice error", msg.Message)
+		}
+		if msg.ScriptResourceName != "" {
+			t.Fatalf("msg.ScriptResourceName: should be %q not %q", "", msg.ScriptResourceName)
+		}
+		if len(msg.StackTrace) != 1 {
+			t.Fatalf("len(msg.StackTrace): should be %d not %d", 1, len(msg.StackTrace))
+		}
+	})
+
+	runtime.GC()
+}
+
+func Test_TryCatch2_WithScriptOrigin(t *testing.T) {
+	SetCaptureStackTraceForUncaughtExceptions(true, 15)
+	defer SetCaptureStackTraceForUncaughtExceptions(false, 0)
+
+	engine.NewContext(nil).Scope(func(cs ContextScope) {
+		var script *Script
+
+		err := cs.TryCatch2(func() {
+			script = engine.Compile([]byte(`
+            	function a(c) {
+            		c();
+            	}
+
+            	function b() {
+            		throw new Error("a nice error");
+            	}
+
+            	a(b);
+            `), engine.NewScriptOrigin("/test.js", 1, 0), nil)
+			cs.Run(script)
+		})
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+
+		msg := err.(*Message)
+		if msg.Message != "Uncaught Error: a nice error" {
+			t.Fatalf("msg.Message: should be %q not %q", "Uncaught Error: a nice error", msg.Message)
+		}
+		if msg.ScriptResourceName != "/test.js" {
+			t.Fatalf("msg.ScriptResourceName: should be %q not %q", "/test.js", msg.ScriptResourceName)
+		}
+		if len(msg.StackTrace) != 1 {
+			t.Fatalf("len(msg.StackTrace): should be %d not %d", 1, len(msg.StackTrace))
+		}
+	})
+
+	runtime.GC()
+}
+
 func Test_PreCompile(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		// pre-compile
@@ -494,8 +573,8 @@ func Test_Array(t *testing.T) {
 func Test_Function(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		script := engine.Compile([]byte(`
-			a = function(x,y,z){ 
-				return x+y+z; 
+			a = function(x,y,z){
+				return x+y+z;
 			}
 		`), nil, nil)
 
@@ -889,8 +968,8 @@ func Test_UnderscoreJS(t *testing.T) {
 		cs.Run(script)
 
 		test := []byte(`
-			_.find([1, 2, 3, 4, 5, 6], function(num) { 
-				return num % 2 == 0; 
+			_.find([1, 2, 3, 4, 5, 6], function(num) {
+				return num % 2 == 0;
 			});
 		`)
 		testScript := engine.Compile(test, nil, nil)
@@ -1301,8 +1380,8 @@ func Benchmark_JsFunction(b *testing.B) {
 	b.StopTimer()
 
 	script := engine.Compile([]byte(`
-		a = function(){ 
-			return 1; 
+		a = function(){
+			return 1;
 		}
 	`), nil, nil)
 

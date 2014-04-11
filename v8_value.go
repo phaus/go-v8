@@ -185,11 +185,11 @@ const (
 )
 
 func (v *Value) checkJsType(typeCode int, check func(unsafe.Pointer) bool) bool {
-	if (v.isType & typeCode) == typeCode {
+	if v.isType&typeCode == typeCode {
 		return true
 	}
 
-	if (v.notType & typeCode) == typeCode {
+	if v.notType&typeCode == typeCode {
 		return false
 	}
 
