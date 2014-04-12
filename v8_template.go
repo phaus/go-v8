@@ -206,7 +206,7 @@ func (ot *ObjectTemplate) SetAccessor(
 		(*C.char)(keyPtr), C.int(len(info.key)),
 		getterPointer,
 		setterPointer,
-		unsafe.Pointer(&(info.data)),
+		unsafe.Pointer(&info.data),
 		C.int(info.attribs),
 	)
 }
@@ -384,7 +384,7 @@ func go_accessor_callback(typ C.AccessorDataEnum, info *C.V8_AccessorCallbackInf
 		Data: uintptr(unsafe.Pointer(info.key)),
 		Len:  int(info.key_length),
 	}
-	gname := *((*string)(unsafe.Pointer(&name)))
+	gname := *(*string)(unsafe.Pointer(&name))
 	gcontext := (*Context)(context)
 	switch typ {
 	case C.OTA_Getter:
@@ -468,7 +468,7 @@ func (o *Object) setAccessor(info *accessorInfo) {
 		(*C.char)(keyPtr), C.int(len(info.key)),
 		getterPointer,
 		setterPointer,
-		unsafe.Pointer(&(info.data)),
+		unsafe.Pointer(&info.data),
 		C.int(info.attribs),
 	)
 }
@@ -501,7 +501,7 @@ func (e *Engine) NewFunctionTemplate(callback FunctionCallback, data interface{}
 	var callbackPtr unsafe.Pointer
 
 	if callback != nil {
-		callbackPtr = unsafe.Pointer(&(ft.callback))
+		callbackPtr = unsafe.Pointer(&ft.callback)
 	}
 
 	self := C.V8_NewFunctionTemplate(e.self, callbackPtr, unsafe.Pointer(&data))
