@@ -83,45 +83,29 @@ func (cs ContextScope) ThrowException(err string) {
 	//C.V8_Context_ThrowException(c.self, (*C.char)(errPtr), C.int(len(err)))
 }
 
-func (cs ContextScope) TryCatch(simple bool, callback func()) string {
-	isSimple := 0
-	if simple {
-		isSimple = 1
+func (cs ContextScope) TryCatch(callback func()) error {
+	msg := C.V8_Context_TryCatch(cs.context.self, unsafe.Pointer(&callback))
+	if msg == nil {
+		return nil
 	}
-	creport := C.V8_Context_TryCatch(cs.context.self, unsafe.Pointer(&callback), C.int(isSimple))
-	if creport == nil {
-		return ""
-	}
-	report := C.GoString(creport)
-	C.free(unsafe.Pointer(creport))
-	return report
+	return (*Message)(msg)
 }
 
-func (cs ContextScope) TryCatch2(callback func()) error {
-	return (*Message)(C.V8_Context_TryCatch2(cs.context.self, unsafe.Pointer(&callback)))
-}
+type MessageCallback func(message *Message, data interface{})
 
-type MessageCallback func(message string, data interface{})
-
-func (cs ContextScope) AddMessageListener(simple bool, callback MessageCallback, data interface{}) {
-	var goSimple int
-	if simple {
-		goSimple = 1
-	}
-
+func (cs ContextScope) AddMessageListener(callback MessageCallback, data interface{}) {
 	var callbackPointer unsafe.Pointer
+
 	if callback != nil {
 		callbackPointer = unsafe.Pointer(&callback)
 	}
 
-	C.V8_AddMessageListener(cs.context.self, callbackPointer, unsafe.Pointer(&data), C.int(goSimple))
+	C.V8_AddMessageListener(cs.context.self, callbackPointer, unsafe.Pointer(&data))
 }
 
 //export go_message_callback
 func go_message_callback(message, callback, data unsafe.Pointer) {
-	report := C.GoString((*C.char)(message))
-	C.free(message)
-	(*(*MessageCallback)(callback))(report, *(*interface{})(data))
+	(*(*MessageCallback)(callback))((*Message)(message), *(*interface{})(data))
 }
 
 func (cs ContextScope) Global() *Object {

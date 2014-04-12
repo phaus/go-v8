@@ -77,9 +77,7 @@ extern void* V8_Context_Global(void* context);
 
 extern void V8_Context_ThrowException(void* context, const char* err, int err_length);
 
-extern char* V8_Context_TryCatch(void* context, void* callback, int simple);
-
-extern void* V8_Context_TryCatch2(void* context, void* callback);
+extern void* V8_Context_TryCatch(void* context, void* callback);
 
 /*
 script
@@ -354,7 +352,7 @@ extern void* V8_SetArrayBufferAllocator(void* raw, void* ac, void* fc);
 
 extern void V8_Dispose_Allocator(void* raw);
 
-extern void V8_AddMessageListener(void* context, void* callback, void* data, int simple);
+extern void V8_AddMessageListener(void* context, void* callback, void* data);
 
 extern void V8_SetCaptureStackTraceForUncaughtExceptions(int capture, int frame_limit);
 

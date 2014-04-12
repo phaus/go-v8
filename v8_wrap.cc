@@ -348,121 +348,54 @@ void V8_Context_ThrowException(void* context, const char* err, int err_length) {
 	);
 }
 
-char* V8_Message_ToString(Handle<Message>& message, Handle<Value>& exception, bool simple) {
-	String::Utf8Value exception_string(exception);
-	if (message.IsEmpty() || simple) {
-		// V8 didn't provide any extra information about this error; just
-		// print the exception.
-		char *cstr = (char*)malloc(exception_string.length() + 1);
-		std::strcpy(cstr, *exception_string);
-		return cstr;
+void* V8_Make_Message(Handle<Message> message) {
+	Handle<StackTrace> stack_trace = message->GetStackTrace();
+	void* go_stack_trace = NULL;
+
+	if (!stack_trace.IsEmpty()) {
+		go_stack_trace = make_stacktrace();
+
+		for (int i = 0; i < stack_trace->GetFrameCount(); ++i) {
+			Local<StackFrame> frame = stack_trace->GetFrame(i);
+			String::Utf8Value script_name(frame->GetScriptName());
+			String::Utf8Value script_name_or_url(frame->GetScriptNameOrSourceURL());
+			String::Utf8Value function_name(frame->GetFunctionName());
+
+			void* go_frame = make_stackframe(
+				frame->GetLineNumber(),
+				frame->GetColumn(),
+				frame->GetScriptId(),
+				CopyString(script_name),
+				CopyString(script_name_or_url),
+				CopyString(function_name),
+				frame->IsEval(),
+				frame->IsConstructor()
+			);
+
+			push_stackframe(go_stack_trace, go_frame);
+		}
 	}
 
-	std::stringstream report;
+	String::Utf8Value message_str(message->Get());
+	String::Utf8Value source_line(message->GetSourceLine());
+	String::Utf8Value script_resource_name(message->GetScriptResourceName());
 
-	// Print (filename):(line number): (message).
-	String::Utf8Value filename(message->GetScriptResourceName());
-	const char* filename_string = ToCString(filename);
-	int linenum = message->GetLineNumber();
-	report << filename_string << ":" << linenum << ":" << *exception_string << std::endl;
+	void* go_message = make_message(
+		CopyString(message_str),
+		CopyString(source_line),
+		CopyString(script_resource_name),
+		go_stack_trace,
+		message->GetLineNumber(),
+		message->GetStartPosition(),
+		message->GetEndPosition(),
+		message->GetStartColumn(),
+		message->GetEndColumn()
+	);
 
-	// Print line of source code.
-	String::Utf8Value sourceline(message->GetSourceLine());
-	const char* sourceline_string = ToCString(sourceline);
-	report << sourceline_string << std::endl;
-
-	// Print wavy underline (GetUnderline is deprecated).
-	int start = message->GetStartColumn();
-	for (int i = 0; i < start; i++) {
-		report << " ";
-	}
-
-	int end = message->GetEndColumn();
-	for (int i = start; i < end; i++) {
-		report << "^";
-	}
-
-	report << std::endl;
-
-	Handle<StackTrace> stackTrace = message->GetStackTrace();
-	for(int i = 0; i < stackTrace->GetFrameCount(); i++) {
-		Handle<StackFrame> frame = stackTrace->GetFrame(i);
-		String::Utf8Value script(frame->GetScriptNameOrSourceURL());
-		String::Utf8Value function(frame->GetFunctionName());
-		report << ToCString(script) << ":" << frame->GetLineNumber() << ToCString(function) << std::endl;
-	}
-
-	std::string report_string = report.str();
-	char *cstr = (char*)malloc(report_string.length() +1);
-	std::strcpy(cstr, report_string.c_str());
-
-	return cstr;
+	return go_message;
 }
 
-char* V8_Context_TryCatch(void* context, void* callback, int simple) {
-	V8_Context* ctx = static_cast<V8_Context*>(context);
-	ISOLATE_SCOPE(ctx->GetIsolate());
-
-	TryCatch try_catch;
-
-	try_catch_callback(callback);
-
-	if (!try_catch.HasCaught()) {
-		return NULL;
-	}
-
-	String::Utf8Value exception(try_catch.Exception());
-	const char* exception_string = ToCString(exception);
-	Handle<Message> message = try_catch.Message();
-
-	if (message.IsEmpty() || simple) {
-		// V8 didn't provide any extra information about this error; just
-		// print the exception.
-		char *cstr = (char*)malloc(exception.length() + 1);
-		std::strcpy(cstr, exception_string);
-		return cstr;
-	}
-
-	std::stringstream report;
-
-	// Print (filename):(line number): (message).
-	String::Utf8Value filename(message->GetScriptResourceName());
-	const char* filename_string = ToCString(filename);
-	int linenum = message->GetLineNumber();
-	report << filename_string << ":" << linenum << ": " << exception_string << std::endl;
-
-	// Print line of source code.
-	String::Utf8Value sourceline(message->GetSourceLine());
-	const char* sourceline_string = ToCString(sourceline);
-	report << sourceline_string << std::endl;
-
-	// Print wavy underline (GetUnderline is deprecated).
-	int start = message->GetStartColumn();
-	for (int i = 0; i < start; i++) {
-		report << " ";
-	}
-
-	int end = message->GetEndColumn();
-	for (int i = start; i < end; i++) {
-		report << "^";
-	}
-
-	report << std::endl;
-
-	String::Utf8Value stack_trace(try_catch.StackTrace());
-	if (stack_trace.length() > 0) {
-		const char* stack_trace_string = ToCString(stack_trace);
-		report << stack_trace_string << std::endl;
-	}
-
-	std::string report_string = report.str();
-	char *cstr = (char*)malloc(report_string.length() +1);
-	std::strcpy(cstr, report_string.c_str());
-
-	return cstr;
-}
-
-void* V8_Context_TryCatch2(void* context, void* callback) {
+void* V8_Context_TryCatch(void* context, void* callback) {
 	V8_Context* ctx = static_cast<V8_Context*>(context);
 	ISOLATE_SCOPE(ctx->GetIsolate());
 
@@ -491,46 +424,7 @@ void* V8_Context_TryCatch2(void* context, void* callback) {
 		);
 	}
 
-	Handle<StackTrace> stack_trace = message->GetStackTrace();
-	void* go_stack_trace = make_stacktrace();
-
-	for (int i = 0; i < stack_trace->GetFrameCount(); ++i) {
-		Local<StackFrame> frame = stack_trace->GetFrame(i);
-		String::Utf8Value script_name(frame->GetScriptName());
-		String::Utf8Value script_name_or_url(frame->GetScriptNameOrSourceURL());
-		String::Utf8Value function_name(frame->GetFunctionName());
-
-		void* go_frame = make_stackframe(
-			frame->GetLineNumber(),
-			frame->GetColumn(),
-			frame->GetScriptId(),
-			CopyString(script_name),
-			CopyString(script_name_or_url),
-			CopyString(function_name),
-			frame->IsEval(),
-			frame->IsConstructor()
-		);
-
-		push_stackframe(go_stack_trace, go_frame);
-	}
-
-	String::Utf8Value message_str(message->Get());
-	String::Utf8Value source_line(message->GetSourceLine());
-	String::Utf8Value script_resource_name(message->GetScriptResourceName());
-
-	void* go_message = make_message(
-		CopyString(message_str),
-		CopyString(source_line),
-		CopyString(script_resource_name),
-		go_stack_trace,
-		message->GetLineNumber(),
-		message->GetStartPosition(),
-		message->GetEndPosition(),
-		message->GetStartColumn(),
-		message->GetEndColumn()
-	);
-
-	return go_message;
+	return V8_Make_Message(message);
 }
 
 /*
@@ -1731,18 +1625,17 @@ void V8_Dispose_Allocator(void* raw) {
 	}
 }
 
-// FIXME: Memory leak or not?
-void V8_MessageCallback(Handle< Message > message, Handle< Value > error) {
+void V8_MessageCallback(Handle<Message> message, Handle<Value> error) {
 	Handle<Array> args = Handle<Array>::Cast(error);
+
 	void* callback = Handle<External>::Cast(args->Get(0))->Value();
 	void* data = Handle<External>::Cast(args->Get(1))->Value();
-	bool simple = args->Get(2)->BooleanValue();
-	Handle<Value> exception = message->Get();
-	const char* cmessage = V8_Message_ToString(message, exception, simple);
-	go_message_callback((void*)cmessage, callback, data);
+	void* msg = V8_Make_Message(message);
+
+	go_message_callback(msg, callback, data);
 }
 
-void V8_AddMessageListener(void* context, void* callback, void* data, int simple) {
+void V8_AddMessageListener(void* context, void* callback, void* data) {
 	V8_Context* ctx = static_cast<V8_Context*>(context);
 	ISOLATE_SCOPE(ctx->GetIsolate());
 
@@ -1751,10 +1644,9 @@ void V8_AddMessageListener(void* context, void* callback, void* data, int simple
 		return;
 	}
 
-	Handle<Array> args = Array::New(isolate, 3);
+	Handle<Array> args = Array::New(isolate, 2);
 	args->Set(0, External::New(isolate, callback));
 	args->Set(1, External::New(isolate, data));
-	args->Set(2, Boolean::New(isolate, simple));
 
 	V8::AddMessageListener(V8_MessageCallback, args);
 }

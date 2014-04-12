@@ -81,48 +81,60 @@ func Test_GetVersion(t *testing.T) {
 
 func Test_Allocator(t *testing.T) {
 	SetArrayBufferAllocator(nil, nil)
-	script := engine.Compile([]byte(`var data = new ArrayBuffer(10); data[0]='a'; data[0];`), nil, nil)
+
+	script := engine.Compile([]byte(`
+		var data = new ArrayBuffer(10);
+		data[0]='a';
+		data[0];
+	`), nil, nil)
+
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
-		exception := cs.TryCatch(true, func() {
+		exception := cs.TryCatch(func() {
 			value := cs.Run(script)
 			if value.ToString() != "a" {
 				t.Fatal("value failed")
 			}
 		})
-		if exception != "" {
-			t.Fatalf("exception found:%s", exception)
+		if exception != nil {
+			t.Fatalf("exception found: %v", exception)
 		}
 	})
 }
 
 func Test_MessageListener(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
-		cs.AddMessageListener(true, func(message string, data interface{}) {
-			t.Log("MessageListener(1): %s", message)
+		cs.AddMessageListener(func(message *Message, data interface{}) {
+			t.Log("MessageListener(1): %v", message)
 		}, nil)
+
 		script := engine.Compile([]byte(`var test[ = ;`), nil, nil)
+
 		if script != nil {
 			cs.Run(script)
 		}
 
 		SetCaptureStackTraceForUncaughtExceptions(true, 1)
-		cs.AddMessageListener(false, func(message string, data interface{}) {
-			t.Log("MessageListener(2): %s", message)
+
+		cs.AddMessageListener(func(message *Message, data interface{}) {
+			t.Log("MessageListener(2): %v", message)
 		}, nil)
+
 		script = engine.Compile([]byte(`var test] = ;`), nil, nil)
 		if script != nil {
 			cs.Run(script)
 		}
 
-		cs.AddMessageListener(true, nil, nil)
-		exception := cs.TryCatch(true, func() {
+		cs.AddMessageListener(nil, nil)
+
+		exception := cs.TryCatch(func() {
 			script = engine.Compile([]byte(`var test[] = ;`), nil, nil)
 			if script != nil {
 				cs.Run(script)
 			}
 		})
-		if exception != "" {
-			t.Log("Exception: %s", exception)
+
+		if exception != nil {
+			t.Log("Exception: %v", exception)
 		}
 	})
 }
@@ -138,27 +150,11 @@ func Test_HelloWorld(t *testing.T) {
 }
 
 func Test_TryCatch(t *testing.T) {
-	engine.NewContext(nil).Scope(func(cs ContextScope) {
-		cs.TryCatch(true, func() {
-			engine.Compile([]byte("a[=1"), nil, nil)
-		})
-
-		if cs.TryCatch(true, func() {
-			cs.ThrowException("this is error")
-		}) != "this is error" {
-			t.Fatal("error message not match")
-		}
-	})
-
-	runtime.GC()
-}
-
-func Test_TryCatch2(t *testing.T) {
-	SetCaptureStackTraceForUncaughtExceptions(true, 15)
+	SetCaptureStackTraceForUncaughtExceptions(true, 1)
 	defer SetCaptureStackTraceForUncaughtExceptions(false, 0)
 
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
-		err := cs.TryCatch2(func() {
+		err := cs.TryCatch(func() {
 			cs.Eval(`
       	function a() {
       		1+2;
@@ -192,14 +188,14 @@ func Test_TryCatch2(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_TryCatch2_WithScriptOrigin(t *testing.T) {
-	SetCaptureStackTraceForUncaughtExceptions(true, 15)
+func Test_TryCatch_WithScriptOrigin(t *testing.T) {
+	SetCaptureStackTraceForUncaughtExceptions(true, 1)
 	defer SetCaptureStackTraceForUncaughtExceptions(false, 0)
 
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		var script *Script
 
-		err := cs.TryCatch2(func() {
+		err := cs.TryCatch(func() {
 			script = engine.Compile([]byte(`
             	function a(c) {
             		c();
@@ -1492,7 +1488,7 @@ func Benchmark_Setter(b *testing.B) {
 func Benchmark_TryCatch(b *testing.B) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		for i := 0; i < b.N; i++ {
-			cs.TryCatch(false, func() {
+			cs.TryCatch(func() {
 				cs.Eval("a[=1;")
 			})
 		}

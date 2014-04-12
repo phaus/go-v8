@@ -128,22 +128,22 @@ Performance and Stability
 The benchmark result on my iMac:
 
 ```
-NewContext     249474 ns/op
-NewInteger        984 ns/op
-NewString         983 ns/op
-NewObject        1036 ns/op
-NewArray0        1130 ns/op
-NewArray5        1314 ns/op
-NewArray20       1666 ns/op
-NewArray100      3124 ns/op
-Compile         11059 ns/op
-PreCompile      11697 ns/op
-RunScript        1085 ns/op
-JsFunction       1114 ns/op
-GoFunction       1630 ns/op
-Getter           2060 ns/op
-Setter           2934 ns/op
-TryCatch        43097 ns/op
+Benchmark_NewContext   285869 ns/op
+Benchmark_NewInteger      707 ns/op
+Benchmark_NewString      1869 ns/op
+Benchmark_NewObject      3292 ns/op
+Benchmark_NewArray0      1004 ns/op
+Benchmark_NewArray5      4024 ns/op
+Benchmark_NewArray20     8601 ns/op
+Benchmark_NewArray100   31963 ns/op
+Benchmark_Compile      640988 ns/op
+Benchmark_PreCompile   629534 ns/op
+Benchmark_RunScript       888 ns/op
+Benchmark_JsFunction     1148 ns/op
+Benchmark_GoFunction     1491 ns/op
+Benchmark_Getter         2215 ns/op
+Benchmark_Setter         3261 ns/op
+Benchmark_TryCatch      47366 ns/op
 ```
 
 Concepts
