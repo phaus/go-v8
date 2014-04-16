@@ -10,7 +10,6 @@ Features
 * Thorough and careful testing
 * Boolean, Number, String, Object, Array, Regexp, Function
 * Compile and run JavaScript
-* Save and load pre-compiled script data
 * Create JavaScript context with global object template
 * Operate JavaScript object properties and array elements in Go
 * Define JavaScript object template in Go with property accessors and interceptors
@@ -45,7 +44,7 @@ import "github.com/idada/v8.go"
 
 func main() {
 	engine := v8.NewEngine()
-	script := engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
+	script := engine.Compile([]byte("'Hello ' + 'World!'"), nil)
 	context := engine.NewContext(nil)
 
 	context.Scope(func(cs v8.ContextScope) {
@@ -137,7 +136,6 @@ Benchmark_NewArray5      4024 ns/op
 Benchmark_NewArray20     8601 ns/op
 Benchmark_NewArray100   31963 ns/op
 Benchmark_Compile      640988 ns/op
-Benchmark_PreCompile   629534 ns/op
 Benchmark_RunScript       888 ns/op
 Benchmark_JsFunction     1148 ns/op
 Benchmark_GoFunction     1491 ns/op
@@ -171,10 +169,10 @@ When you want to run some JavaScript. You need to compile first.
 Scripts can run many times or run in different context.
 
 ```go
-script := engine.Compile([]byte(`"Hello " + "World!"`), nil, nil)
+script := engine.Compile([]byte(`"Hello " + "World!"`), nil)
 ```
 
-The Engine.Compile() method take 3 arguments. 
+The Engine.Compile() method take 2 arguments. 
 
 The first is the code.
 
@@ -186,15 +184,6 @@ real := ReadFile(name)
 code := "function(_export){\n" + real + "\n}"
 origin := engine.NewScriptOrigin(name, 1, 0)
 script := engine.Compile(code, origin, nil)
-```
-
-The third is a ScriptData, it's pre-parsing data, as obtained by Engine.PreCompile(). If you want to compile a script many time, you can use ScriptData to speeds compilation. 
-
-```go
-code := []byte(`"Hello " + "World!"`)
-data := engine.PreCompile(code)
-script1 := engine.Compile(code, nil, data)
-script2 := engine.Compile(code, nil, data)
 ```
 
 Context
@@ -240,7 +229,6 @@ V8引擎的Go语言绑定。
 * 详细的测试
 * 数据类型：Boolean, Number, String, Object, Array, Regexp, Function
 * 编译并运行JavaScript
-* 保存和加载预编译的JavaScript数据
 * 创建带有全局对象模板的Context
 * 在Go语言端操作和访问JavaScript数组的元素
 * 在Go语言端操作和访问JavaScript对象的属性
@@ -276,7 +264,7 @@ import "github.com/idada/v8.go"
 
 func main() {
 	engine := v8.NewEngine()
-	script := engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
+	script := engine.Compile([]byte("'Hello ' + 'World!'"), nil)
 	context := engine.NewContext(nil)
 
 	context.Scope(func(cs v8.ContextScope) {
@@ -359,22 +347,21 @@ func main() {
 以下是在我的iMac上运行benchmark的输出结果:
 
 ```
-NewContext     249474 ns/op
-NewInteger        984 ns/op
-NewString         983 ns/op
-NewObject        1036 ns/op
-NewArray0        1130 ns/op
-NewArray5        1314 ns/op
-NewArray20       1666 ns/op
-NewArray100      3124 ns/op
-Compile         11059 ns/op
-PreCompile      11697 ns/op
-RunScript        1085 ns/op
-JsFunction       1114 ns/op
-GoFunction       1630 ns/op
-Getter           2060 ns/op
-Setter           2934 ns/op
-TryCatch        43097 ns/op
+Benchmark_NewContext   285869 ns/op
+Benchmark_NewInteger      707 ns/op
+Benchmark_NewString      1869 ns/op
+Benchmark_NewObject      3292 ns/op
+Benchmark_NewArray0      1004 ns/op
+Benchmark_NewArray5      4024 ns/op
+Benchmark_NewArray20     8601 ns/op
+Benchmark_NewArray100   31963 ns/op
+Benchmark_Compile      640988 ns/op
+Benchmark_RunScript       888 ns/op
+Benchmark_JsFunction     1148 ns/op
+Benchmark_GoFunction     1491 ns/op
+Benchmark_Getter         2215 ns/op
+Benchmark_Setter         3261 ns/op
+Benchmark_TryCatch      47366 ns/op
 ```
 
 概念
@@ -402,7 +389,7 @@ Script
 一个Script对象可以在不同的Context中运行多次。
 
 ```go
-script := engine.Compile([]byte(`"Hello " + "World!"`), nil, nil)
+script := engine.Compile([]byte(`"Hello " + "World!"`), nil)
 ```
 
 Engine.Compile()方法需要三个参数。
@@ -417,15 +404,6 @@ real := ReadFile(name)
 code := "function(_export){\n" + real + "\n}"
 origin := engine.NewScriptOrigin(name, 1, 0)
 script := engine.Compile(code, origin, nil)
-```
-
-第三个参数是一个ScriptData对象，它是Engine.PreCompile()方法预解析脚本后得到的数据。如果有一段代码你需要反复编译多次，那么你可以先预解析后，用ScriptData来加速编译。
-
-```go
-code := []byte(`"Hello " + "World!"`)
-data := engine.PreCompile(code)
-script1 := engine.Compile(code, nil, data)
-script2 := engine.Compile(code, nil, data)
 ```
 
 Context

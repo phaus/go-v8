@@ -82,7 +82,7 @@ extern void* V8_Context_TryCatch(void* context, void* callback);
 /*
 script
 */
-extern void* V8_Compile(void* engine, const char* code, int length, void* script_origin, void* script_data);
+extern void* V8_Compile(void* engine, const char* code, int length, void* script_origin);
 
 extern void V8_DisposeScript(void* script);
 

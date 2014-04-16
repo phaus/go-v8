@@ -46,7 +46,7 @@ func check(a []int) {
 
 func main() {
 	engine := v8.NewEngine()
-	script := engine.Compile([]byte(code), nil, nil)
+	script := engine.Compile([]byte(code), nil)
 
 	if nil == script {
 		panic("cannot compile")

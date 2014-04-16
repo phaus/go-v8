@@ -83,7 +83,7 @@ public:
 
 class V8_Script {
 public:
-	V8_Script(V8_Context* the_engine, Handle<Script> script) {
+	V8_Script(V8_Context* the_engine, Handle<UnboundScript> script) {
 		engine = the_engine;
 		self.Reset(engine->GetIsolate(), script);
 	}
@@ -98,7 +98,7 @@ public:
 	}
 
 	V8_Context* engine;
-	Persistent<Script> self;
+	Persistent<UnboundScript> self;
 };
 
 class V8_FieldOwnerInfo {
@@ -430,16 +430,14 @@ void* V8_Context_TryCatch(void* context, void* callback) {
 /*
 script
 */
-void* V8_Compile(void* engine, const char* code, int length, void* go_script_origin,void* script_data) {
+void* V8_Compile(void* engine, const char* code, int length, void* go_script_origin) {
 	ENGINE_SCOPE(engine);
 
 	HandleScope handle_scope(isolate);
 
 	ScriptOrigin script_origin(String::NewFromUtf8(isolate, ""));
-	ScriptOrigin* script_origin_ptr = NULL;
-
+	
 	if (go_script_origin) {
-		script_origin_ptr = &script_origin;
 		char * cstr = go_script_origin_get_name(go_script_origin);
 		int line    = go_script_origin_get_line(go_script_origin);
 		int column  = go_script_origin_get_line(go_script_origin);
@@ -453,12 +451,12 @@ void* V8_Compile(void* engine, const char* code, int length, void* go_script_ori
 		free(cstr);
 	}
 
-	Handle<Script> script = Script::New(
+	ScriptCompiler::Source source(
 		String::NewFromOneByte(isolate, (uint8_t*)code, String::kNormalString, length),
-		script_origin_ptr,
-		static_cast<ScriptData*>(script_data),
-		Handle<String>()
+		script_origin
 	);
+
+	Handle<UnboundScript> script = ScriptCompiler::CompileUnbound(isolate, &source);
 
 	if (script.IsEmpty())
 		return NULL;
@@ -474,8 +472,8 @@ void* V8_Script_Run(void* script) {
 	V8_Script* the_script = static_cast<V8_Script*>(script);
 	ISOLATE_SCOPE(the_script->engine->GetIsolate());
 	V8_Context* the_context = V8_Current_Context(isolate);
-	Local<Script> local_script = Local<Script>::New(isolate, the_script->self);
-
+	Local<UnboundScript> local_unbound_script = Local<UnboundScript>::New(isolate, the_script->self);
+	Local<Script> local_script = local_unbound_script->BindToCurrentContext();
 	return new_V8_Value(the_context, local_script->Run());
 }
 
@@ -1019,6 +1017,8 @@ void* V8_PropertyCallbackInfo_ReturnValue(void *info,  PropertyDataEnum typ) {
 				engine,
 				ReturnValue<Value>(static_cast<PropertyCallbackInfo<Array>*>(the_info->info)->GetReturnValue())
 			);
+		default:
+			//impossible, should panic
 			break;
 		}
 	}
@@ -1057,8 +1057,7 @@ void* V8_AccessorCallbackInfo_ReturnValue(void *info, AccessorDataEnum typ) {
 	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
 	V8_Context* engine = static_cast<V8_Context*>(the_info->engine);
 	if (the_info->returnValue == NULL) {
-		switch(typ) {
-		case OTA_Getter:
+		if (typ == OTA_Getter) {
 			the_info->returnValue = new V8_ReturnValue(
 				engine,
 				static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->GetReturnValue()

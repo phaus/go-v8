@@ -86,7 +86,7 @@ func Test_Allocator(t *testing.T) {
 		var data = new ArrayBuffer(10);
 		data[0]='a';
 		data[0];
-	`), nil, nil)
+	`), nil)
 
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		exception := cs.TryCatch(func() {
@@ -107,7 +107,7 @@ func Test_MessageListener(t *testing.T) {
 			t.Log("MessageListener(1): %v", message)
 		}, nil)
 
-		script := engine.Compile([]byte(`var test[ = ;`), nil, nil)
+		script := engine.Compile([]byte(`var test[ = ;`), nil)
 
 		if script != nil {
 			cs.Run(script)
@@ -119,7 +119,7 @@ func Test_MessageListener(t *testing.T) {
 			t.Log("MessageListener(2): %v", message)
 		}, nil)
 
-		script = engine.Compile([]byte(`var test] = ;`), nil, nil)
+		script = engine.Compile([]byte(`var test] = ;`), nil)
 		if script != nil {
 			cs.Run(script)
 		}
@@ -127,7 +127,7 @@ func Test_MessageListener(t *testing.T) {
 		cs.AddMessageListener(nil, nil)
 
 		exception := cs.TryCatch(func() {
-			script = engine.Compile([]byte(`var test[] = ;`), nil, nil)
+			script = engine.Compile([]byte(`var test[] = ;`), nil)
 			if script != nil {
 				cs.Run(script)
 			}
@@ -156,18 +156,18 @@ func Test_TryCatch(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		err := cs.TryCatch(func() {
 			cs.Eval(`
-      	function a() {
-      		1+2;
-      		b();
-      		1+2;
-      	}
+				function a() {
+					1+2;
+					b();
+					1+2;
+				}
 
-      	function b() {
-      		throw new Error("a nice error");
-      	}
+				function b() {
+					throw new Error("a nice error");
+				}
 
-      	a();
-      `)
+				a();
+      		`)
 		})
 		if err == nil {
 			t.Fatal("expected an error")
@@ -206,7 +206,7 @@ func Test_TryCatch_WithScriptOrigin(t *testing.T) {
             	}
 
             	a(b);
-            `), engine.NewScriptOrigin("/test.js", 1, 0), nil)
+            `), engine.NewScriptOrigin("/test.js", 1, 0))
 			cs.Run(script)
 		})
 		if err == nil {
@@ -222,37 +222,6 @@ func Test_TryCatch_WithScriptOrigin(t *testing.T) {
 		}
 		if len(msg.StackTrace) != 1 {
 			t.Fatalf("len(msg.StackTrace): should be %d not %d", 1, len(msg.StackTrace))
-		}
-	})
-
-	runtime.GC()
-}
-
-func Test_PreCompile(t *testing.T) {
-	engine.NewContext(nil).Scope(func(cs ContextScope) {
-		// pre-compile
-		code := []byte("'Hello ' + 'PreCompile!'")
-		scriptData1 := engine.PreCompile(code)
-
-		if scriptData1 == nil {
-			t.Fatal("precompile failed")
-		}
-
-		// test save and load script data
-		data := scriptData1.Data()
-		scriptData2 := NewScriptData(data)
-
-		if scriptData1 == nil {
-			t.Fatal("load precompile data failed")
-		}
-
-		// test compile with script data
-		script := engine.Compile(code, nil, scriptData2)
-		value := cs.Run(script)
-		result := value.ToString()
-
-		if result != "Hello PreCompile!" {
-			t.Fatal("result not match")
 		}
 	})
 
@@ -363,7 +332,7 @@ func Test_Values(t *testing.T) {
 
 func Test_Object(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
-		script := engine.Compile([]byte("a={};"), nil, nil)
+		script := engine.Compile([]byte("a={};"), nil)
 		value := cs.Run(script)
 		object := value.ToObject()
 
@@ -490,7 +459,7 @@ func Test_Object(t *testing.T) {
 		}
 
 		// Test GetPropertyNames
-		script = engine.Compile([]byte("a={x:10,y:20,z:30};"), nil, nil)
+		script = engine.Compile([]byte("a={x:10,y:20,z:30};"), nil)
 		value = cs.Run(script)
 		object = value.ToObject()
 
@@ -518,7 +487,7 @@ func Test_Object(t *testing.T) {
 
 func Test_Array(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
-		script := engine.Compile([]byte("[1,2,3]"), nil, nil)
+		script := engine.Compile([]byte("[1,2,3]"), nil)
 		value := cs.Run(script)
 		result := value.ToArray()
 
@@ -572,7 +541,7 @@ func Test_Function(t *testing.T) {
 			a = function(x,y,z){
 				return x+y+z;
 			}
-		`), nil, nil)
+		`), nil)
 
 		value := cs.Run(script)
 
@@ -891,26 +860,32 @@ func Test_ObjectConstructor(t *testing.T) {
 }
 
 func Test_Context(t *testing.T) {
-	script1 := engine.Compile([]byte("typeof(Test_Context) == 'undefined';"), nil, nil)
-	script2 := engine.Compile([]byte("Test_Context = 1;"), nil, nil)
-	script3 := engine.Compile([]byte("Test_Context = Test_Context + 7;"), nil, nil)
+	script1 := engine.Compile([]byte("typeof(MyTestContext) === 'undefined';"), nil)
+	script2 := engine.Compile([]byte("MyTestContext = 1;"), nil)
+	script3 := engine.Compile([]byte("MyTestContext = MyTestContext + 7;"), nil)
 
 	test_func := func(cs ContextScope) {
+		if !cs.Run(script1).IsTrue() {
+			t.Fatal(`!cs.Run(script1).IsTrue()`)
+		}
+
 		if cs.Run(script1).IsFalse() {
-			t.Fatal(`script1.Run(c).IsFalse()`)
+			t.Fatal(`cs.Run(script1).IsFalse()`)
 		}
 
 		if cs.Run(script2).ToInteger() != 1 {
-			t.Fatal(`script2.Run(c).ToInteger() != 1`)
+			t.Fatal(`cs.Run(script2).ToInteger() != 1`)
 		}
 
 		if cs.Run(script3).ToInteger() != 8 {
-			t.Fatal(`script3.Run(c).ToInteger() != 8`)
+			t.Fatal(`cs.Run(script3).ToInteger() != 8`)
 		}
 	}
 
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
+		t.Log("context1")
 		engine.NewContext(nil).Scope(test_func)
+		t.Log("context2")
 		engine.NewContext(nil).Scope(test_func)
 		test_func(cs)
 	})
@@ -960,7 +935,7 @@ func Test_UnderscoreJS(t *testing.T) {
 			return
 		}
 
-		script := engine.Compile(code, nil, nil)
+		script := engine.Compile(code, nil)
 		cs.Run(script)
 
 		test := []byte(`
@@ -968,7 +943,7 @@ func Test_UnderscoreJS(t *testing.T) {
 				return num % 2 == 0;
 			});
 		`)
-		testScript := engine.Compile(test, nil, nil)
+		testScript := engine.Compile(test, nil)
 		value := cs.Run(testScript)
 
 		if value == nil || value.IsNumber() == false {
@@ -1073,7 +1048,7 @@ func Test_ThreadSafe1(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			engine.NewContext(nil).Scope(func(cs ContextScope) {
-				script := engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
+				script := engine.Compile([]byte("'Hello ' + 'World!'"), nil)
 				value := cs.Run(script)
 				result := value.ToString()
 				fail = fail || result != "Hello World!"
@@ -1103,7 +1078,7 @@ func Test_ThreadSafe2(t *testing.T) {
 			context.Scope(func(cs ContextScope) {
 				rand_sched(200)
 
-				script := engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
+				script := engine.Compile([]byte("'Hello ' + 'World!'"), nil)
 				value := cs.Run(script)
 				result := value.ToString()
 				fail = fail || result != "Hello World!"
@@ -1124,7 +1099,7 @@ func Test_ThreadSafe2(t *testing.T) {
 //
 func Test_ThreadSafe3(t *testing.T) {
 	fail := false
-	script := engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
+	script := engine.Compile([]byte("'Hello ' + 'World!'"), nil)
 
 	wg := new(sync.WaitGroup)
 	for i := 0; i < 100; i++ {
@@ -1153,7 +1128,7 @@ func Test_ThreadSafe3(t *testing.T) {
 //
 func Test_ThreadSafe4(t *testing.T) {
 	fail := false
-	script := engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
+	script := engine.Compile([]byte("'Hello ' + 'World!'"), nil)
 	context := engine.NewContext(nil)
 
 	wg := new(sync.WaitGroup)
@@ -1193,7 +1168,7 @@ func Test_ThreadSafe6(t *testing.T) {
 		go func() {
 			rand_sched(200)
 
-			scriptChan <- engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
+			scriptChan <- engine.Compile([]byte("'Hello ' + 'World!'"), nil)
 		}()
 	}
 
@@ -1329,25 +1304,7 @@ func Benchmark_Compile(b *testing.B) {
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		engine.Compile(code, nil, nil)
-	}
-
-	b.StopTimer()
-	runtime.GC()
-	b.StartTimer()
-}
-
-func Benchmark_PreCompile(b *testing.B) {
-	b.StopTimer()
-	code, err := ioutil.ReadFile("samples/underscore.js")
-	if err != nil {
-		return
-	}
-	scriptData := engine.PreCompile(code)
-	b.StartTimer()
-
-	for i := 0; i < b.N; i++ {
-		engine.Compile(code, nil, scriptData)
+		engine.Compile(code, nil)
 	}
 
 	b.StopTimer()
@@ -1358,7 +1315,7 @@ func Benchmark_PreCompile(b *testing.B) {
 func Benchmark_RunScript(b *testing.B) {
 	b.StopTimer()
 	context := engine.NewContext(nil)
-	script := engine.Compile([]byte("1+1"), nil, nil)
+	script := engine.Compile([]byte("1+1"), nil)
 	b.StartTimer()
 
 	context.Scope(func(cs ContextScope) {
@@ -1379,7 +1336,7 @@ func Benchmark_JsFunction(b *testing.B) {
 		a = function(){
 			return 1;
 		}
-	`), nil, nil)
+	`), nil)
 
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		value := cs.Run(script)
