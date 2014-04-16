@@ -133,6 +133,10 @@ func (e *Engine) MakeObject(ot *ObjectTemplate) *Value {
 	return newValue(e, C.V8_ObjectTemplate_NewObject(e.self, ot.self))
 }
 
+func (ot *ObjectTemplate) Plugin(pluginInit unsafe.Pointer) {
+	C.V8_ObjectTemplate_Plugin(ot.self, pluginInit)
+}
+
 func (ot *ObjectTemplate) WrapObject(value *Value) {
 	ot.Lock()
 	defer ot.Unlock()

@@ -298,6 +298,8 @@ extern void* V8_NewObjectTemplate(void* engine);
 
 extern void V8_DisposeObjectTemplate(void* tpl);
 
+extern void V8_ObjectTemplate_Plugin(void* tpl, void* init);
+
 extern void V8_ObjectTemplate_SetProperty(void* tpl, const char* key, int key_length, void* prop_value, int attribs);
 
 extern void* V8_ObjectTemplate_NewObject(void* engine, void* tpl);

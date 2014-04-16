@@ -1263,7 +1263,7 @@ object template
 void* V8_NewObjectTemplate(void* engine) {
 	ENGINE_SCOPE(engine);
 	HandleScope handle_scope(isolate);
-	Handle<ObjectTemplate> tpl = ObjectTemplate::New();
+	Handle<ObjectTemplate> tpl = ObjectTemplate::New(isolate);
 	if (tpl.IsEmpty())
 		return NULL;
 	return (void*)new V8_ObjectTemplate(the_engine, tpl);
@@ -1271,6 +1271,16 @@ void* V8_NewObjectTemplate(void* engine) {
 
 void V8_DisposeObjectTemplate(void* tpl) {
 	delete static_cast<V8_ObjectTemplate*>(tpl);
+}
+
+#include "v8_plugin.h"
+
+typedef void (*plugin_init)(void*, void*);
+
+void V8_ObjectTemplate_Plugin(void* tpl, void* init) {
+	OBJECT_TEMPLATE_HANDLE_SCOPE(tpl);
+
+	((plugin_init)init)(isolate, &local_template);
 }
 
 void V8_ObjectTemplate_SetProperty(void* tpl, const char* key, int key_length, void* prop_value, int attribs) {
