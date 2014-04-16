@@ -18,6 +18,7 @@ Features
 * Throw JavaScript exception by Go
 * JSON parse and generate
 * Powerful binding API
+* C++ plugin
 
 Install
 =======
@@ -119,6 +120,68 @@ func main() {
 	})
 }
 
+```
+
+C++ plugin
+==========
+
+You can implement plugin in C++.
+
+```cpp
+#include "v8.h"
+#include "v8_plugin.h"
+
+using namespace v8;
+
+extern "C" {
+
+static void LogCallback(const FunctionCallbackInfo<Value>& args) {
+	if (args.Length() < 1) return;
+
+	HandleScope scope(args.GetIsolate());
+	Handle<Value> arg = args[0];
+	String::Utf8Value value(arg);
+
+	printf("%s\n", (char*)*value);
+}
+
+v8_export_plugin(log, {
+	global->Set(isolate, "log",
+		FunctionTemplate::New(isolate, LogCallback)
+	);
+});
+
+}
+```
+
+And load the plugin in Go.
+
+```go
+package main
+
+/*
+#cgo pkg-config: ../../v8.pc
+
+#include "v8_plugin.h"
+
+v8_import_plugin(log);
+*/
+import "C"
+import "github.com/idada/v8.go"
+
+func main() {
+	engine := v8.NewEngine()
+	global := engine.NewObjectTemplate()
+
+	// C.v8_plugin_log generate by v8_import_plugin(log)
+	global.Plugin(C.v8_plugin_log)
+
+	engine.NewContext(global).Scope(func(cs v8.ContextScope) {
+		cs.Eval(`
+			log("Hello Plugin!")
+		`)
+	})
+}
 ```
 
 Performance and Stability 
@@ -339,6 +402,68 @@ func main() {
 	})
 }
 
+```
+
+C++插件机制
+==========
+
+你可以用C++实现插件.
+
+```cpp
+#include "v8.h"
+#include "v8_plugin.h"
+
+using namespace v8;
+
+extern "C" {
+
+static void LogCallback(const FunctionCallbackInfo<Value>& args) {
+	if (args.Length() < 1) return;
+
+	HandleScope scope(args.GetIsolate());
+	Handle<Value> arg = args[0];
+	String::Utf8Value value(arg);
+
+	printf("%s\n", (char*)*value);
+}
+
+v8_export_plugin(log, {
+	global->Set(isolate, "log",
+		FunctionTemplate::New(isolate, LogCallback)
+	);
+});
+
+}
+```
+
+并在Go代码中加载它.
+
+```go
+package main
+
+/*
+#cgo pkg-config: ../../v8.pc
+
+#include "v8_plugin.h"
+
+v8_import_plugin(log);
+*/
+import "C"
+import "github.com/idada/v8.go"
+
+func main() {
+	engine := v8.NewEngine()
+	global := engine.NewObjectTemplate()
+
+	// C.v8_plugin_log generate by v8_import_plugin(log)
+	global.Plugin(C.v8_plugin_log)
+
+	engine.NewContext(global).Scope(func(cs v8.ContextScope) {
+		cs.Eval(`
+			log("Hello Plugin!")
+		`)
+	})
+}
 ```
 
 性能和稳定性 
