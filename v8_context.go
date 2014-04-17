@@ -91,23 +91,6 @@ func (cs ContextScope) TryCatch(callback func()) error {
 	return (*Message)(msg)
 }
 
-type MessageCallback func(message *Message, data interface{})
-
-func (cs ContextScope) AddMessageListener(callback MessageCallback, data interface{}) {
-	var callbackPointer unsafe.Pointer
-
-	if callback != nil {
-		callbackPointer = unsafe.Pointer(&callback)
-	}
-
-	C.V8_AddMessageListener(cs.context.self, callbackPointer, unsafe.Pointer(&data))
-}
-
-//export go_message_callback
-func go_message_callback(message, callback, data unsafe.Pointer) {
-	(*(*MessageCallback)(callback))((*Message)(message), *(*interface{})(data))
-}
-
 func (cs ContextScope) Global() *Object {
 	return newValue(cs.GetEngine(), C.V8_Context_Global(cs.context.self)).ToObject()
 }

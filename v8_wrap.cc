@@ -1637,27 +1637,23 @@ void V8_Dispose_Allocator(void* raw) {
 void V8_MessageCallback(Handle<Message> message, Handle<Value> error) {
 	Handle<Array> args = Handle<Array>::Cast(error);
 
-	void* callback = Handle<External>::Cast(args->Get(0))->Value();
-	void* data = Handle<External>::Cast(args->Get(1))->Value();
+	void* go_engine = Handle<External>::Cast(args->Get(0))->Value();
 	void* msg = V8_Make_Message(message);
 
-	go_message_callback(msg, callback, data);
+	go_message_callback(go_engine, msg);
 }
 
-void V8_AddMessageListener(void* context, void* callback, void* data) {
-	V8_Context* ctx = static_cast<V8_Context*>(context);
-	ISOLATE_SCOPE(ctx->GetIsolate());
+void V8_EnableMessageListener(void* engine, void* go_engine, int enable) {
+	ENGINE_SCOPE(engine);
 
-	if(callback == NULL) {
+	if (enable == 1) {
+		HandleScope scope(isolate);
+		Handle<Array> args = Array::New(isolate, 1);
+		args->Set(0, External::New(isolate, go_engine));
+		V8::AddMessageListener(V8_MessageCallback, args);
+	} else if (enable == 0) {
 		V8::RemoveMessageListeners(V8_MessageCallback);
-		return;
 	}
-
-	Handle<Array> args = Array::New(isolate, 2);
-	args->Set(0, External::New(isolate, callback));
-	args->Set(1, External::New(isolate, data));
-
-	V8::AddMessageListener(V8_MessageCallback, args);
 }
 
 void V8_SetCaptureStackTraceForUncaughtExceptions(void* engine, int capture, int frame_limit) {

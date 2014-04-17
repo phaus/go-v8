@@ -96,46 +96,39 @@ func Test_Allocator(t *testing.T) {
 			}
 		})
 		if exception != nil {
-			t.Fatalf("exception found: %v", exception)
+			t.Fatalf("exception found: %s", exception)
 		}
 	})
 }
 
 func Test_MessageListener(t *testing.T) {
+	id1 := engine.AddMessageListener(func(message *Message) {
+		t.Log("MessageListener(1):", message)
+	})
+	engine.Compile([]byte(`var test[ = ;`), nil)
+	// MessageListener(1)
+
+	id2 := engine.AddMessageListener(func(message *Message) {
+		t.Log("MessageListener(2):", message)
+	})
+	engine.Compile([]byte(`var test] = ;`), nil)
+	// MessageListener(1)
+	// MessageListener(2)
+
+	engine.RemoveMessageListener(id1)
+	engine.Compile([]byte(`var test] = ;`), nil)
+	// MessageListener(2)
+
+	engine.RemoveMessageListener(id2)
+	engine.Compile([]byte(`var test] = ;`), nil)
+	// nothing
+		
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
-		cs.AddMessageListener(func(message *Message, data interface{}) {
-			t.Log("MessageListener(1): %v", message)
-		}, nil)
-
-		script := engine.Compile([]byte(`var test[ = ;`), nil)
-
-		if script != nil {
-			cs.Run(script)
-		}
-
-		engine.SetCaptureStackTraceForUncaughtExceptions(true, 1)
-
-		cs.AddMessageListener(func(message *Message, data interface{}) {
-			t.Log("MessageListener(2): %v", message)
-		}, nil)
-
-		script = engine.Compile([]byte(`var test] = ;`), nil)
-		if script != nil {
-			cs.Run(script)
-		}
-
-		cs.AddMessageListener(nil, nil)
-
 		exception := cs.TryCatch(func() {
-			script = engine.Compile([]byte(`var test[] = ;`), nil)
-			if script != nil {
-				cs.Run(script)
-			}
+			engine.Compile([]byte(`var test[] = ;`), nil)
 		})
-
-		if exception != nil {
-			t.Log("Exception: %v", exception)
-		}
+		t.Log("Exception:", exception)
+		// Exception
 	})
 }
 
