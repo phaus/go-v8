@@ -356,7 +356,7 @@ extern void V8_Dispose_Allocator(void* raw);
 
 extern void V8_AddMessageListener(void* context, void* callback, void* data);
 
-extern void V8_SetCaptureStackTraceForUncaughtExceptions(int capture, int frame_limit);
+extern void V8_SetCaptureStackTraceForUncaughtExceptions(void* engine, int capture, int frame_limit);
 
 #ifdef __cplusplus
 } // extern "C"

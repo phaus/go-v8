@@ -113,7 +113,7 @@ func Test_MessageListener(t *testing.T) {
 			cs.Run(script)
 		}
 
-		SetCaptureStackTraceForUncaughtExceptions(true, 1)
+		engine.SetCaptureStackTraceForUncaughtExceptions(true, 1)
 
 		cs.AddMessageListener(func(message *Message, data interface{}) {
 			t.Log("MessageListener(2): %v", message)
@@ -150,8 +150,8 @@ func Test_HelloWorld(t *testing.T) {
 }
 
 func Test_TryCatch(t *testing.T) {
-	SetCaptureStackTraceForUncaughtExceptions(true, 1)
-	defer SetCaptureStackTraceForUncaughtExceptions(false, 0)
+	engine.SetCaptureStackTraceForUncaughtExceptions(true, 1)
+	defer engine.SetCaptureStackTraceForUncaughtExceptions(false, 0)
 
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		err := cs.TryCatch(func() {
@@ -189,8 +189,8 @@ func Test_TryCatch(t *testing.T) {
 }
 
 func Test_TryCatch_WithScriptOrigin(t *testing.T) {
-	SetCaptureStackTraceForUncaughtExceptions(true, 1)
-	defer SetCaptureStackTraceForUncaughtExceptions(false, 0)
+	engine.SetCaptureStackTraceForUncaughtExceptions(true, 1)
+	defer engine.SetCaptureStackTraceForUncaughtExceptions(false, 0)
 
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		var script *Script

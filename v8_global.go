@@ -101,11 +101,11 @@ func go_array_buffer_free(callback unsafe.Pointer, data unsafe.Pointer, length C
 	(*(*ArrayBufferFreeCallback)(callback))(data, int(length))
 }
 
-func SetCaptureStackTraceForUncaughtExceptions(capture bool, frameLimit int) {
+func (engine *Engine) SetCaptureStackTraceForUncaughtExceptions(capture bool, frameLimit int) {
 	icapture := 0
 	if capture {
 		icapture = 1
 	}
 
-	C.V8_SetCaptureStackTraceForUncaughtExceptions(C.int(icapture), C.int(frameLimit))
+	C.V8_SetCaptureStackTraceForUncaughtExceptions(engine.self, C.int(icapture), C.int(frameLimit))
 }

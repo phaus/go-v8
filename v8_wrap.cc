@@ -1660,7 +1660,8 @@ void V8_AddMessageListener(void* context, void* callback, void* data) {
 	V8::AddMessageListener(V8_MessageCallback, args);
 }
 
-void V8_SetCaptureStackTraceForUncaughtExceptions(int capture, int frame_limit) {
+void V8_SetCaptureStackTraceForUncaughtExceptions(void* engine, int capture, int frame_limit) {
+	ENGINE_SCOPE(engine);
 	V8::SetCaptureStackTraceForUncaughtExceptions(capture, frame_limit);
 }
 
