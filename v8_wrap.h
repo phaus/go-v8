@@ -350,9 +350,7 @@ extern void V8_ForceGC();
 
 extern void V8_SetFlagsFromString(const char* str, int length);
 
-extern void* V8_SetArrayBufferAllocator(void* raw, void* ac, void* fc);
-
-extern void V8_Dispose_Allocator(void* raw);
+extern void V8_UseDefaultArrayBufferAllocator();
 
 extern void V8_EnableMessageListener(void* engine, void* go_engine, int enable);
 

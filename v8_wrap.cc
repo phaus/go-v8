@@ -1574,64 +1574,28 @@ void V8_SetFlagsFromString(const char* str, int length) {
 	V8::SetFlagsFromString(str, length);
 }
 
-class GoArrayBufferAllocator : public ArrayBuffer::Allocator {
-	public:
-	GoArrayBufferAllocator() {
-		mAc = NULL;
-		mFc = NULL;
+class DefaultArrayBufferAllocator : public ArrayBuffer::Allocator {
+public:
+	DefaultArrayBufferAllocator() {
 	}
 
 	virtual void* Allocate(size_t length) {
-		if(mAc != NULL) {
-			return go_array_buffer_allocate(mAc, length, true);
-		}
-
 		void* result = malloc(length);
 		memset(result, 0, length);
 		return result;
 	}
 
 	virtual void* AllocateUninitialized(size_t length) {
-		if(mAc != NULL) {
-			return go_array_buffer_allocate(mAc, length, false);
-		}
 		return malloc(length);
 	}
 
 	virtual void Free(void* data, size_t length) {
-		if(mFc != NULL) {
-			go_array_buffer_free(mFc, data, length);
-			return;
-		}
 		free(data);
 	}
-
-	void SetCallback(void* aAc, void* aFc) {
-		mAc = aAc;
-		mFc = aFc;
-	}
-
-	private:
-	void* mAc;
-	void* mFc;
 };
 
-void* V8_SetArrayBufferAllocator(void* raw, void* ac, void* fc) {
-	GoArrayBufferAllocator* allocator = static_cast<GoArrayBufferAllocator*>(raw);
-	if(allocator == NULL) {
-		allocator = new GoArrayBufferAllocator();
-		V8::SetArrayBufferAllocator(allocator);
-	}
-
-	allocator->SetCallback(ac, fc);
-	return allocator;
-}
-
-void V8_Dispose_Allocator(void* raw) {
-	GoArrayBufferAllocator* allocator = static_cast<GoArrayBufferAllocator*>(raw);
-	if(allocator != NULL) {
-		delete allocator;
-	}
+void V8_UseDefaultArrayBufferAllocator() {
+	V8::SetArrayBufferAllocator(new DefaultArrayBufferAllocator());
 }
 
 void V8_MessageCallback(Handle<Message> message, Handle<Value> error) {

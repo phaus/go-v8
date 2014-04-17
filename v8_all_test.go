@@ -80,7 +80,7 @@ func Test_GetVersion(t *testing.T) {
 }
 
 func Test_Allocator(t *testing.T) {
-	SetArrayBufferAllocator(nil, nil)
+	UseDefaultArrayBufferAllocator()
 
 	script := engine.Compile([]byte(`
 		var data = new ArrayBuffer(10);
@@ -122,7 +122,7 @@ func Test_MessageListener(t *testing.T) {
 	engine.RemoveMessageListener(id2)
 	engine.Compile([]byte(`var test] = ;`), nil)
 	// nothing
-		
+
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		exception := cs.TryCatch(func() {
 			engine.Compile([]byte(`var test[] = ;`), nil)
