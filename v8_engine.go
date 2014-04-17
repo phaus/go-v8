@@ -60,13 +60,13 @@ func NewEngine() *Engine {
 	return result
 }
 
-//export v8_panic
-func v8_panic(message *C.char) {
+//export go_panic
+func go_panic(message *C.char) {
 	panic(C.GoString(message))
 }
 
-//export v8_field_owner_weak_callback
-func v8_field_owner_weak_callback(engine unsafe.Pointer, ownerId C.int64_t) {
+//export go_field_owner_weak_callback
+func go_field_owner_weak_callback(engine unsafe.Pointer, ownerId C.int64_t) {
 	delete((*Engine)(engine).fieldOwners, int64(ownerId))
 }
 
@@ -88,7 +88,7 @@ type MessageListener struct {
 
 func (engine *Engine) AddMessageListener(callback MessageCallback) int64 {
 	listener := &MessageListener{
-		Id: engine.messageListenerId,
+		Id:       engine.messageListenerId,
 		Callback: callback,
 	}
 
@@ -138,4 +138,3 @@ func go_message_callback(engine, message unsafe.Pointer) {
 		}
 	}
 }
-

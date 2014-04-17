@@ -60,8 +60,8 @@ func (e *Engine) NewContext(globalTemplate *ObjectTemplate) *Context {
 	return result
 }
 
-//export context_scope_callback
-func context_scope_callback(c unsafe.Pointer, callback unsafe.Pointer) {
+//export go_context_scope_callback
+func go_context_scope_callback(c unsafe.Pointer, callback unsafe.Pointer) {
 	(*(*func(ContextScope))(callback))(ContextScope{(*Context)(c)})
 }
 
@@ -69,8 +69,8 @@ func (c *Context) Scope(callback func(ContextScope)) {
 	C.V8_Context_Scope(c.self, unsafe.Pointer(c), unsafe.Pointer(&callback))
 }
 
-//export try_catch_callback
-func try_catch_callback(callback unsafe.Pointer) {
+//export go_try_catch_callback
+func go_try_catch_callback(callback unsafe.Pointer) {
 	(*(*func())(callback))()
 }
 

@@ -111,12 +111,9 @@ public:
 	int64_t ownerId;
 };
 
-// implement by Go
-extern void v8_field_owner_weak_callback(void* engine, int64_t ownerId);
-
 void FieldOwnerWeakCallback(const WeakCallbackData<Value, V8_FieldOwnerInfo> &data) {
 	V8_FieldOwnerInfo* info = data.GetParameter();
-	v8_field_owner_weak_callback(info->engine, info->ownerId);
+	go_field_owner_weak_callback(info->engine, info->ownerId);
 	delete info;
 }
 
@@ -298,10 +295,10 @@ void V8_Context_Scope(void* context, void* context_ptr, void* callback) {
 	if (prev_context == NULL) {
 		HandleScope handle_scope(isolate);
 		Context::Scope scope(Local<Context>::New(isolate, ctx->self));
-		context_scope_callback(context_ptr, callback);
+		go_context_scope_callback(context_ptr, callback);
 	} else {
 		Context::Scope scope(Local<Context>::New(isolate, ctx->self));
-		context_scope_callback(context_ptr, callback);
+		go_context_scope_callback(context_ptr, callback);
 	}
 
 	isolate->SetData(PREV_CONTEXT_SLOT, prev_context);
@@ -310,14 +307,14 @@ void V8_Context_Scope(void* context, void* context_ptr, void* callback) {
 V8_Context* V8_Current_Context(Isolate* isolate) {
 	void* data = isolate->GetData(PREV_CONTEXT_SLOT);
 	if (data == NULL)
-		v8_panic((char*)"Please call this API in a context scope");
+		go_panic((char*)"Please call this API in a context scope");
 	return static_cast<V8_Context*>(static_cast<scope_data*>(isolate->GetData(PREV_CONTEXT_SLOT))->context);
 }
 
 void* V8_Current_ContextPtr(Isolate* isolate) {
 	void* data = isolate->GetData(PREV_CONTEXT_SLOT);
 	if (data == NULL)
-		v8_panic((char*)"Please call this API in a context scope");
+		go_panic((char*)"Please call this API in a context scope");
 	return static_cast<scope_data*>(isolate->GetData(PREV_CONTEXT_SLOT))->context_ptr;
 }
 
@@ -353,7 +350,7 @@ void* V8_Make_Message(Handle<Message> message) {
 	void* go_stack_trace = NULL;
 
 	if (!stack_trace.IsEmpty()) {
-		go_stack_trace = make_stacktrace();
+		go_stack_trace = go_make_stacktrace();
 
 		for (int i = 0; i < stack_trace->GetFrameCount(); ++i) {
 			Local<StackFrame> frame = stack_trace->GetFrame(i);
@@ -361,7 +358,7 @@ void* V8_Make_Message(Handle<Message> message) {
 			String::Utf8Value script_name_or_url(frame->GetScriptNameOrSourceURL());
 			String::Utf8Value function_name(frame->GetFunctionName());
 
-			void* go_frame = make_stackframe(
+			void* go_frame = go_make_stackframe(
 				frame->GetLineNumber(),
 				frame->GetColumn(),
 				frame->GetScriptId(),
@@ -372,7 +369,7 @@ void* V8_Make_Message(Handle<Message> message) {
 				frame->IsConstructor()
 			);
 
-			push_stackframe(go_stack_trace, go_frame);
+			go_push_stackframe(go_stack_trace, go_frame);
 		}
 	}
 
@@ -380,7 +377,7 @@ void* V8_Make_Message(Handle<Message> message) {
 	String::Utf8Value source_line(message->GetSourceLine());
 	String::Utf8Value script_resource_name(message->GetScriptResourceName());
 
-	void* go_message = make_message(
+	void* go_message = go_make_message(
 		CopyString(message_str),
 		CopyString(source_line),
 		CopyString(script_resource_name),
@@ -401,7 +398,7 @@ void* V8_Context_TryCatch(void* context, void* callback) {
 
 	TryCatch try_catch;
 
-	try_catch_callback(callback);
+	go_try_catch_callback(callback);
 
 	if (!try_catch.HasCaught()) {
 		return NULL;
@@ -411,7 +408,7 @@ void* V8_Context_TryCatch(void* context, void* callback) {
 	Handle<Message> message = try_catch.Message();
 
 	if (message.IsEmpty()) {
-		return make_message(
+		return go_make_message(
 			CopyString(exception),
 			NULL,
 			NULL,

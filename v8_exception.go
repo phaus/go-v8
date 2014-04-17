@@ -61,8 +61,8 @@ type StackFrame struct {
 	IsConstructor         bool
 }
 
-//export make_message
-func make_message(
+//export go_make_message
+func go_make_message(
 	message, source_line, script_resource_name *C.char,
 	stack_trace unsafe.Pointer,
 	line, start_pos, end_pos, start_col, end_col int,
@@ -95,13 +95,13 @@ func make_message(
 	return unsafe.Pointer(go_message)
 }
 
-//export make_stacktrace
-func make_stacktrace() unsafe.Pointer {
+//export go_make_stacktrace
+func go_make_stacktrace() unsafe.Pointer {
 	return unsafe.Pointer(&StackTrace{})
 }
 
-//export make_stackframe
-func make_stackframe(line, column, script_id int, script_name, script_name_or_url, function_name *C.char, is_eval, is_constructor bool) unsafe.Pointer {
+//export go_make_stackframe
+func go_make_stackframe(line, column, script_id int, script_name, script_name_or_url, function_name *C.char, is_eval, is_constructor bool) unsafe.Pointer {
 	frame := &StackFrame{
 		line, column, script_id,
 		C.GoString(script_name),
@@ -118,8 +118,8 @@ func make_stackframe(line, column, script_id int, script_name, script_name_or_ur
 	return unsafe.Pointer(frame)
 }
 
-//export push_stackframe
-func push_stackframe(ptr_s, ptr_f unsafe.Pointer) {
+//export go_push_stackframe
+func go_push_stackframe(ptr_s, ptr_f unsafe.Pointer) {
 	if ptr_s == nil || ptr_f == nil {
 		return
 	}
