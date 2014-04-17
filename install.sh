@@ -80,7 +80,7 @@ fi
 echo "Name: v8
 Description: v8 javascript engine
 Version: $v8_version
-Cflags: $libstdcpp -I`pwd`/$v8_path/include
+Cflags: $libstdcpp -I`pwd` -I`pwd`/$v8_path/include
 Libs: $libstdcpp `pwd`/$libv8_base `pwd`/$libv8_snapshot $librt" > v8.pc
 
 go install

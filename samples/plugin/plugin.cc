@@ -12,7 +12,7 @@ static void LogCallback(const FunctionCallbackInfo<Value>& args) {
 	Handle<Value> arg = args[0];
 	String::Utf8Value value(arg);
 
-	printf("%s\n", (char*)*value);
+	printf("%s\n", *value);
 }
 
 v8_export_plugin(log, {
