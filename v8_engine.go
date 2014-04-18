@@ -13,6 +13,7 @@ var traceDispose = false
 
 // Represents an isolated instance of the V8 engine.
 // Objects from one engine must not be used in other engine.
+// Not thred safe!
 type Engine struct {
 	embedable
 	self unsafe.Pointer
@@ -25,15 +26,15 @@ type Engine struct {
 
 	// those fields are used to keep reference
 	// make object can't destroy by GC
-	funcTemplateId     int64
-	funcTemplates      map[int64]*FunctionTemplate
-	objectTemplateId   int64
-	objectTemplates    map[int64]*ObjectTemplate
-	fieldOwnerId       int64
-	fieldOwners        map[int64]*Object
-	messageListenerId  int64
-	messageListeners   []*MessageListener
-	messageListenerNum int
+	funcTemplateId       int64
+	funcTemplates        map[int64]*FunctionTemplate
+	objectTemplateId     int64
+	objectTemplates      map[int64]*ObjectTemplate
+	fieldOwnerId         int64
+	fieldOwners          map[int64]*Object
+	messageListenerId    int64
+	firstMessageListener *messageListener
+	lastMessageListener  *messageListener
 }
 
 func NewEngine() *Engine {
@@ -81,60 +82,54 @@ func (engine *Engine) SetCaptureStackTraceForUncaughtExceptions(capture bool, fr
 
 type MessageCallback func(message *Message)
 
-type MessageListener struct {
+type messageListener struct {
+	Next     *messageListener
 	Id       int64
 	Callback MessageCallback
 }
 
 func (engine *Engine) AddMessageListener(callback MessageCallback) int64 {
-	listener := &MessageListener{
+	listener := &messageListener{
 		Id:       engine.messageListenerId,
 		Callback: callback,
 	}
 
-	engine.messageListenerId += 1
-
-	needAppend := true
-	for i, listener := range engine.messageListeners {
-		if listener == nil {
-			engine.messageListeners[i] = listener
-			needAppend = false
-			break
-		}
-	}
-
-	if needAppend {
-		engine.messageListeners = append(engine.messageListeners, listener)
-	}
-
-	engine.messageListenerNum += 1
-
-	if engine.messageListenerNum == 1 {
+	if engine.lastMessageListener == nil {
+		engine.firstMessageListener = listener
+		engine.lastMessageListener = listener
 		C.V8_EnableMessageListener(engine.self, unsafe.Pointer(engine), 1)
+	} else {
+		engine.lastMessageListener.Next = listener
+		engine.lastMessageListener = listener
 	}
 
 	return listener.Id
 }
 
 func (engine *Engine) RemoveMessageListener(id int64) {
-	for i, listener := range engine.messageListeners {
-		if listener != nil && listener.Id == id {
-			engine.messageListeners[i] = nil
-			engine.messageListenerNum -= 1
+	var p *messageListener
+	for i := engine.firstMessageListener; i != nil; p, i = i, i.Next {
+		if i.Id == id {
+			if p == nil {
+				engine.firstMessageListener = i.Next
+			} else {
+				p.Next = i.Next
+			}
+			if i == engine.lastMessageListener {
+				engine.lastMessageListener = p
+			}
 			break
 		}
 	}
 
-	if engine.messageListenerNum == 0 {
+	if engine.firstMessageListener == nil {
 		C.V8_EnableMessageListener(engine.self, unsafe.Pointer(engine), 0)
 	}
 }
 
 //export go_message_callback
 func go_message_callback(engine, message unsafe.Pointer) {
-	for _, listener := range (*Engine)(engine).messageListeners {
-		if listener != nil && listener.Callback != nil {
-			listener.Callback((*Message)(message))
-		}
+	for i := (*Engine)(engine).firstMessageListener; i != nil; i = i.Next {
+		i.Callback((*Message)(message))
 	}
 }
