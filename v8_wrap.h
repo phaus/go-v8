@@ -89,28 +89,6 @@ extern void V8_DisposeScript(void* script);
 extern void* V8_Script_Run(void* script);
 
 /*
-script data
-*/
-extern void* V8_PreCompile(void* engine, const char* code, int length);
-
-extern void* V8_NewScriptData(const char* data, int length);
-
-extern void V8_DisposeScriptData(void* script_data);
-
-extern int V8_ScriptData_Length(void* script_data);
-
-extern const char* V8_ScriptData_Data(void* script_data);
-
-extern int V8_ScriptData_HasError(void* script_data);
-
-/*
-script origin
-*/
-extern void* V8_NewScriptOrigin(void* engine, const char* name, int name_length, int line_offset, int column_offset);
-
-extern void V8_DisposeScriptOrigin(void* script_origin);
-
-/*
 value
 */
 extern void V8_DisposeValue(void* value);

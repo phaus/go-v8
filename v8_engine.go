@@ -25,7 +25,7 @@ type Engine struct {
 	_false     *Value
 
 	// those fields are used to keep reference
-	// make object can't destroy by GC
+	// make GC can't destory objects
 	funcTemplateId       int64
 	funcTemplates        map[int64]*FunctionTemplate
 	objectTemplateId     int64

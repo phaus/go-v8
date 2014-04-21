@@ -475,58 +475,6 @@ void* V8_Script_Run(void* script) {
 }
 
 /*
-script data
-*/
-void* V8_PreCompile(void* engine, const char* code, int length) {
-	V8_Context* the_engine = static_cast<V8_Context*>(engine);
-	ISOLATE_SCOPE(the_engine->GetIsolate());
-	HandleScope handle_scope(isolate);
-
-	return (void*)ScriptData::PreCompile(
-		String::NewFromOneByte(isolate, (uint8_t*)code, String::kNormalString, length)
-	);
-}
-
-void* V8_NewScriptData(const char* data, int length) {
-	return (void*)ScriptData::New(data, length);
-}
-
-void V8_DisposeScriptData(void* script_data) {
-	delete static_cast<ScriptData*>(script_data);
-}
-
-int V8_ScriptData_Length(void* script_data) {
-	return static_cast<ScriptData*>(script_data)->Length();
-}
-
-const char* V8_ScriptData_Data(void* script_data) {
-	return static_cast<ScriptData*>(script_data)->Data();
-}
-
-int V8_ScriptData_HasError(void* script_data) {
-	return static_cast<ScriptData*>(script_data)->HasError();
-}
-
-/*
-script origin
-*/
-void* V8_NewScriptOrigin(void* engine, const char* name, int name_length, int line_offset, int column_offset) {
-	V8_Context* the_engine = static_cast<V8_Context*>(engine);
-	ISOLATE_SCOPE(the_engine->GetIsolate());
-	HandleScope handle_scope(isolate);
-
-	return (void*)(new ScriptOrigin(
-		String::NewFromOneByte(isolate, (uint8_t*)name, String::kNormalString, name_length),
-		Integer::New(isolate, line_offset),
-		Integer::New(isolate, column_offset)
-	));
-}
-
-void V8_DisposeScriptOrigin(void* script_origin) {
-	delete static_cast<ScriptOrigin*>(script_origin);
-}
-
-/*
 Value wrappers
 */
 void V8_DisposeValue(void* value) {

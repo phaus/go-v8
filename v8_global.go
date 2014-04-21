@@ -32,9 +32,9 @@ func SetFlagsFromString(cmd string) {
 	C.V8_SetFlagsFromString(cs, C.int(len(cmd)))
 }
 
-// Use the default array buffer allocator of
+// Set default array buffer allocator to V8 for
 // ArrayBuffer, ArrayBufferView, Int8Array...
-// If you want to use your allocator you can implement it in C++
+// If you want to use your own allocator. You can implement it in C++
 // and invoke v8::SetArrayBufferAllocator by your self
 func UseDefaultArrayBufferAllocator() {
 	C.V8_UseDefaultArrayBufferAllocator()
