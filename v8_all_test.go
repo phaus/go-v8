@@ -578,6 +578,37 @@ func Test_Function(t *testing.T) {
 }
 
 func Test_Accessor(t *testing.T) {
+	// Object
+	engine.NewContext(nil).Scope(func(cs ContextScope) {
+		var propertyValue int32 = 1234
+
+		object := engine.NewObject().ToObject()
+
+		object.SetAccessor("abc",
+			func(name string, info AccessorCallbackInfo) {
+				data := info.Data().(*int32)
+				info.ReturnValue().SetInt32(*data)
+			},
+			func(name string, value *Value, info AccessorCallbackInfo) {
+				data := info.Data().(*int32)
+				*data = value.ToInt32()
+			},
+			&propertyValue,
+			PA_None,
+		)
+
+		if object.GetProperty("abc").ToInt32() != 1234 {
+			t.Fatal(`object.GetProperty("abc").ToInt32() != 1234`)
+		}
+
+		object.SetProperty("abc", engine.NewInteger(5678), PA_None)
+
+		if propertyValue != 5678 {
+			t.Fatal(`propertyValue != 5678`)
+		}
+	})
+
+	// ObjectTemplate
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		template := engine.NewObjectTemplate()
 		var propertyValue int32
