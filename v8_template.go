@@ -457,26 +457,6 @@ func go_indexed_property_callback(typ C.PropertyDataEnum, info *C.V8_PropertyCal
 	}
 }
 
-func (o *Object) setAccessor(info *accessorInfo) {
-	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&info.key)).Data)
-	var getterPointer, setterPointer unsafe.Pointer
-	if info.getter != nil {
-		getterPointer = unsafe.Pointer(&info.getter)
-	}
-
-	if info.setter != nil {
-		setterPointer = unsafe.Pointer(&info.setter)
-	}
-	C.V8_Object_SetAccessor(
-		o.self,
-		(*C.char)(keyPtr), C.int(len(info.key)),
-		getterPointer,
-		setterPointer,
-		unsafe.Pointer(&info.data),
-		C.int(info.attribs),
-	)
-}
-
 // A JavaScript function object (ECMA-262, 15.3).
 //
 type Function struct {

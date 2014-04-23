@@ -23,6 +23,7 @@ type Object struct {
 	*Value
 	fieldOwnerId   int64
 	internalFields []interface{}
+	accessor       *accessorInfo
 }
 
 func (e *Engine) NewObject() *Value {
@@ -69,6 +70,17 @@ func (o *Object) GetInternalField(index int) interface{} {
 	return *(*interface{})(data)
 }
 
+// Keep the Object alive when it refence by JS
+func (o *Object) setOwner() {
+	// the object reference by engine
+	if o.fieldOwnerId == 0 {
+		o.engine.fieldOwnerId += 1
+		o.fieldOwnerId = o.engine.fieldOwnerId
+		o.engine.fieldOwners[o.fieldOwnerId] = o
+		C.V8_Object_SetFieldOwnerInfo(o.self, unsafe.Pointer(o.engine), C.int64_t(o.fieldOwnerId))
+	}
+}
+
 func (o *Object) SetInternalField(index int, value interface{}) {
 	C.V8_Object_SetInternalField(
 		o.self,
@@ -78,14 +90,47 @@ func (o *Object) SetInternalField(index int, value interface{}) {
 
 	// the value reference by object so the value can't destory by GC
 	o.internalFields = append(o.internalFields, value)
+	o.setOwner()
+}
 
-	// the object reference by engine
-	if o.fieldOwnerId == 0 {
-		o.engine.fieldOwnerId += 1
-		o.fieldOwnerId = o.engine.fieldOwnerId
-		o.engine.fieldOwners[o.fieldOwnerId] = o
-		C.V8_Object_SetFieldOwnerInfo(o.self, unsafe.Pointer(o.engine), C.int64_t(o.fieldOwnerId))
+func (o *Object) SetAccessor(
+	key string,
+	getter AccessorGetterCallback,
+	setter AccessorSetterCallback,
+	data interface{},
+	attribs PropertyAttribute,
+) {
+	o.setAccessor(&accessorInfo{
+		key:     key,
+		getter:  getter,
+		setter:  setter,
+		data:    data,
+		attribs: attribs,
+	})
+}
+
+func (o *Object) setAccessor(info *accessorInfo) {
+	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&info.key)).Data)
+	var getterPointer, setterPointer unsafe.Pointer
+	if info.getter != nil {
+		getterPointer = unsafe.Pointer(&info.getter)
 	}
+
+	if info.setter != nil {
+		setterPointer = unsafe.Pointer(&info.setter)
+	}
+
+	o.accessor = info
+	o.setOwner()
+
+	C.V8_Object_SetAccessor(
+		o.self,
+		(*C.char)(keyPtr), C.int(len(info.key)),
+		getterPointer,
+		setterPointer,
+		unsafe.Pointer(&info.data),
+		C.int(info.attribs),
+	)
 }
 
 // Sets a local property on this object bypassing interceptors and

@@ -134,28 +134,28 @@ func (v *Value) ToObject() *Object {
 	if v == nil {
 		return nil
 	}
-	return &Object{v, 0, nil}
+	return &Object{v, 0, nil, nil}
 }
 
 func (v *Value) ToArray() *Array {
 	if v == nil {
 		return nil
 	}
-	return &Array{&Object{v, 0, nil}}
+	return &Array{&Object{v, 0, nil, nil}}
 }
 
 func (v *Value) ToRegExp() *RegExp {
 	if v == nil {
 		return nil
 	}
-	return &RegExp{&Object{v, 0, nil}, "", false, RF_None, false}
+	return &RegExp{&Object{v, 0, nil, nil}, "", false, RF_None, false}
 }
 
 func (v *Value) ToFunction() *Function {
 	if v == nil {
 		return nil
 	}
-	return &Function{&Object{v, 0, nil}}
+	return &Function{&Object{v, 0, nil, nil}}
 }
 
 func (v *Value) String() string {
