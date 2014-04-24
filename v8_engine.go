@@ -8,6 +8,7 @@ package v8
 import "C"
 import "unsafe"
 import "runtime"
+import "reflect"
 
 var traceDispose = false
 
@@ -35,6 +36,8 @@ type Engine struct {
 	messageListenerId    int64
 	firstMessageListener *messageListener
 	lastMessageListener  *messageListener
+
+	bindTypes map[reflect.Type]*ObjectTemplate
 }
 
 func NewEngine() *Engine {
@@ -49,6 +52,7 @@ func NewEngine() *Engine {
 		funcTemplates:   make(map[int64]*FunctionTemplate),
 		objectTemplates: make(map[int64]*ObjectTemplate),
 		fieldOwners:     make(map[int64]*Object),
+		bindTypes:       make(map[reflect.Type]*ObjectTemplate),
 	}
 
 	runtime.SetFinalizer(result, func(e *Engine) {

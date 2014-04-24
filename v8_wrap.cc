@@ -1238,7 +1238,7 @@ void V8_ObjectTemplate_SetProperty(void* tpl, const char* key, int key_length, v
 	);
 }
 
-void* V8_ObjectTemplate_NewObject(void* engine, void* tpl) {
+void* V8_ObjectTemplate_NewInstance(void* engine, void* tpl) {
 	OBJECT_TEMPLATE_SCOPE(tpl);
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
 	return new_V8_Value(the_engine, local_template->NewInstance());

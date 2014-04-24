@@ -280,7 +280,7 @@ extern void V8_ObjectTemplate_Plugin(void* tpl, void* init);
 
 extern void V8_ObjectTemplate_SetProperty(void* tpl, const char* key, int key_length, void* prop_value, int attribs);
 
-extern void* V8_ObjectTemplate_NewObject(void* engine, void* tpl);
+extern void* V8_ObjectTemplate_NewInstance(void* engine, void* tpl);
 
 extern void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, void* getter, void* setter, void* data, int attribs);
 

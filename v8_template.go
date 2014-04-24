@@ -122,7 +122,7 @@ func (ot *ObjectTemplate) Dispose() {
 	}
 }
 
-func (e *Engine) MakeObject(ot *ObjectTemplate) *Value {
+func (e *Engine) NewInstanceOf(ot *ObjectTemplate) *Value {
 	ot.Lock()
 	defer ot.Unlock()
 
@@ -130,7 +130,7 @@ func (e *Engine) MakeObject(ot *ObjectTemplate) *Value {
 		return nil
 	}
 
-	return newValue(e, C.V8_ObjectTemplate_NewObject(e.self, ot.self))
+	return newValue(e, C.V8_ObjectTemplate_NewInstance(e.self, ot.self))
 }
 
 func (ot *ObjectTemplate) Plugin(pluginInit unsafe.Pointer) {

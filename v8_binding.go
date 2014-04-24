@@ -30,6 +30,10 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 	}
 
 	if typeInfo.Kind() == reflect.Struct {
+		if _, exists := engine.bindTypes[typeInfo]; exists {
+			return errors.New("duplicate type binding")
+		}
+
 		constructor := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
 			value := reflect.New(typeInfo)
 			info.This().SetInternalField(0, &value)
@@ -86,6 +90,7 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 			nil,
 			nil,
 		)
+		engine.bindTypes[typeInfo] = objTemplate
 
 		template.SetAccessor(typeName, func(name string, info AccessorCallbackInfo) {
 			info.ReturnValue().Set(constructor.NewFunction())
@@ -133,12 +138,31 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 			}
 		}
 		return jsObjectVal
+	// TODO: Don't create many function template !!!!
 	case reflect.Func:
 		return engine.GoFuncToJsFunc(value).NewFunction()
+	case reflect.Ptr:
+		elemType := value.Type().Elem()
+		if elemType.Kind() == reflect.Struct {
+			if objectTemplate, exits := engine.bindTypes[elemType]; exits {
+				objectVal := engine.NewInstanceOf(objectTemplate)
+				object := objectVal.ToObject()
+				object.SetInternalField(0, &value)
+				return objectVal
+			}
+		}
 	case reflect.Struct:
 		switch value.Interface().(type) {
 		case time.Time:
 			return engine.NewDate(value.Interface().(time.Time))
+		default:
+			if objectTemplate, exits := engine.bindTypes[value.Type()]; exits {
+				objectVal := engine.NewInstanceOf(objectTemplate)
+				object := objectVal.ToObject()
+				valuePtr := value.Addr()
+				object.SetInternalField(0, &valuePtr)
+				return objectVal
+			}
 		}
 	}
 	return engine.Undefined()

@@ -65,7 +65,7 @@ func Test_InternalField(t *testing.T) {
 		str1 := "hello"
 		cache = append(cache, str1)
 		cs.SetPrivateData(cache)
-		obj := engine.MakeObject(ot).ToObject()
+		obj := engine.NewInstanceOf(ot).ToObject()
 		obj.SetInternalField(0, str1)
 		str2 := obj.GetInternalField(0).(string)
 		if str1 != str2 {
@@ -630,8 +630,8 @@ func Test_Accessor(t *testing.T) {
 		template.SetProperty("def", engine.NewInteger(8888), PA_None)
 
 		values := []*Value{
-			engine.MakeObject(template), // Make
-			engine.NewObject(),          // Wrap
+			engine.NewInstanceOf(template), // Make
+			engine.NewObject(),             // Wrap
 		}
 		template.WrapObject(values[1])
 
@@ -701,7 +701,7 @@ func Test_NamedPropertyHandler(t *testing.T) {
 	)
 
 	func_template := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
-		info.ReturnValue().Set(engine.MakeObject(obj_template))
+		info.ReturnValue().Set(engine.NewInstanceOf(obj_template))
 	}, nil)
 
 	global_template := engine.NewObjectTemplate()
@@ -711,7 +711,7 @@ func Test_NamedPropertyHandler(t *testing.T) {
 	}, nil, nil, PA_None)
 
 	engine.NewContext(global_template).Scope(func(cs ContextScope) {
-		object := engine.MakeObject(obj_template).ToObject()
+		object := engine.NewInstanceOf(obj_template).ToObject()
 
 		object.GetProperty("abc")
 		object.SetProperty("abc", engine.NewInteger(123), PA_None)
@@ -770,7 +770,7 @@ func Test_IndexedPropertyHandler(t *testing.T) {
 	)
 
 	func_template := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
-		info.ReturnValue().Set(engine.MakeObject(obj_template))
+		info.ReturnValue().Set(engine.NewInstanceOf(obj_template))
 	}, nil)
 
 	global_template := engine.NewObjectTemplate()
@@ -780,7 +780,7 @@ func Test_IndexedPropertyHandler(t *testing.T) {
 	}, nil, nil, PA_None)
 
 	engine.NewContext(global_template).Scope(func(cs ContextScope) {
-		object := engine.MakeObject(obj_template).ToObject()
+		object := engine.NewInstanceOf(obj_template).ToObject()
 
 		object.GetElement(1)
 		object.SetElement(1, engine.NewInteger(123))
@@ -1416,7 +1416,7 @@ func Benchmark_Getter(b *testing.B) {
 			PA_None,
 		)
 
-		object := engine.MakeObject(template).ToObject()
+		object := engine.NewInstanceOf(template).ToObject()
 
 		b.StartTimer()
 
@@ -1452,7 +1452,7 @@ func Benchmark_Setter(b *testing.B) {
 			PA_None,
 		)
 
-		object := engine.MakeObject(template).ToObject()
+		object := engine.NewInstanceOf(template).ToObject()
 
 		b.StartTimer()
 
