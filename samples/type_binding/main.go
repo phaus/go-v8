@@ -7,20 +7,33 @@ import (
 
 const (
 	code = `
-        var obj = new Obj()
-        obj.PrintMe()
+        var obj1 = new Obj()
+        obj1.Id = 100
+        obj1.PrintMe()
+        obj1.Test = function() {
+        	check(this.Id)
+        }
+        obj1.Test()
 
-        var o2 = getObj()
-        o2.PrintMe()
+        var obj2 = getObj()
+        obj2.PrintMe()
+        obj2.Test = function() {
+        	check(this.Id)
+        }
+        obj2.Test()
     `
 )
+
+func check(a int) {
+	fmt.Println("check:", a)
+}
 
 type Obj struct {
 	Id int
 }
 
 func (this *Obj) PrintMe() {
-	fmt.Println("print", this.Id)
+	fmt.Println("print:", this.Id)
 }
 
 func GetObj() *Obj {
@@ -37,6 +50,7 @@ func main() {
 	}
 	global := engine.NewObjectTemplate()
 
+	global.Bind("check", check)
 	global.Bind("Obj", Obj{})
 	global.Bind("getObj", GetObj)
 

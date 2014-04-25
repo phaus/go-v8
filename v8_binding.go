@@ -6,6 +6,95 @@ import (
 	"time"
 )
 
+type BindObject struct {
+	Target     reflect.Value
+	Properties []BindObjectProperty
+}
+
+type BindObjectProperty struct {
+	Name  string
+	Value *Value
+}
+
+func (bo *BindObject) Set(name string, jsvalue *Value) {
+	for i := 0; i < len(bo.Properties); i++ {
+		if bo.Properties[i].Name == name {
+			bo.Properties[i].Value = jsvalue
+			return
+		}
+	}
+
+	bo.Properties = append(bo.Properties, BindObjectProperty{
+		Name:  name,
+		Value: jsvalue,
+	})
+}
+
+func (bo *BindObject) Get(name string) *Value {
+	for i := 0; i < len(bo.Properties); i++ {
+		if bo.Properties[i].Name == name {
+			return bo.Properties[i].Value
+		}
+	}
+
+	return nil
+}
+
+func (engine *Engine) initBindAPI() {
+	engine.bindFuncBase = engine.NewFunctionTemplate(func(callbackInfo FunctionCallbackInfo) {
+		gofunc := callbackInfo.Callee().GetProperty("__go_bind__").ToExternal().GetValue().(*reflect.Value)
+		funcType := gofunc.Type()
+
+		numIn := funcType.NumIn()
+		numArgs := callbackInfo.Length()
+
+		var out []reflect.Value
+
+		if funcType.IsVariadic() {
+			in := make([]reflect.Value, 1)
+			in[0] = reflect.MakeSlice(funcType.In(0), numArgs, numArgs)
+
+			for i := 0; i < numArgs; i++ {
+				jsvalue := callbackInfo.Get(i)
+				engine.SetJsValueToGo(in[0].Index(i), jsvalue)
+			}
+
+			out = gofunc.CallSlice(in)
+		} else {
+			in := make([]reflect.Value, numIn)
+
+			for i := 0; i < len(in); i++ {
+				jsvalue := callbackInfo.Get(i)
+				in[i] = reflect.Indirect(reflect.New(funcType.In(i)))
+				engine.SetJsValueToGo(in[i], jsvalue)
+			}
+
+			out = gofunc.Call(in)
+		}
+
+		if out == nil {
+			callbackInfo.CurrentScope().ThrowException("argument number not match")
+			return
+		}
+
+		switch {
+		// when Go function returns only one value
+		case len(out) == 1:
+			callbackInfo.ReturnValue().Set(engine.GoValueToJsValue(out[0]))
+		// when Go function returns multi-value, put them in a JavaScript array
+		case len(out) > 1:
+			jsResults := engine.NewArray(len(out))
+			jsResultsArray := jsResults.ToArray()
+
+			for i := 0; i < len(out); i++ {
+				jsResultsArray.SetElement(i, engine.GoValueToJsValue(out[i]))
+			}
+
+			callbackInfo.ReturnValue().Set(jsResults)
+		}
+	}, nil)
+}
+
 //
 // Fast bind Go type or function to JS. Note, The function template and object template
 // created in fast bind internal are never destroyed. The JS class map to Go type use a
@@ -22,9 +111,9 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 	}
 
 	if typeInfo.Kind() == reflect.Func {
-		jsfunc := engine.GoFuncToJsFunc(reflect.ValueOf(target))
+		goFunc := reflect.ValueOf(target)
 		template.SetAccessor(typeName, func(name string, info AccessorCallbackInfo) {
-			info.ReturnValue().Set(jsfunc.NewFunction())
+			info.ReturnValue().Set(engine.GoFuncToJsFunc(goFunc))
 		}, nil, nil, PA_None)
 		return nil
 	}
@@ -35,8 +124,9 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 		}
 
 		constructor := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
-			value := reflect.New(typeInfo)
-			info.This().SetInternalField(0, &value)
+			info.This().SetInternalField(0, &BindObject{
+				Target: reflect.New(typeInfo),
+			})
 		}, nil)
 		constructor.SetClassName(typeName)
 
@@ -45,7 +135,8 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 		objTemplate.SetNamedPropertyHandler(
 			// get
 			func(name string, info PropertyCallbackInfo) {
-				value := info.This().GetInternalField(0).(*reflect.Value)
+				bindObj := info.This().GetInternalField(0).(*BindObject)
+				value := bindObj.Target
 
 				field := value.Elem().FieldByName(name)
 
@@ -56,33 +147,43 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 
 				method := value.MethodByName(name)
 
-				if !method.IsValid() {
-					info.CurrentScope().ThrowException("could't found property or method '" + typeName + "." + name + "'")
+				if method.IsValid() {
+					info.ReturnValue().Set(engine.GoFuncToJsFunc(method))
 					return
 				}
 
-				info.ReturnValue().Set(engine.GoFuncToJsFunc(method).NewFunction())
+				jsvalue := bindObj.Get(name)
+
+				if jsvalue != nil {
+					info.ReturnValue().Set(jsvalue)
+					return
+				}
+
+				info.CurrentScope().ThrowException("Could't found property or method '" + typeName + "." + name + "' when set value")
 			},
 			// set
 			func(name string, jsvalue *Value, info PropertyCallbackInfo) {
-				value := info.This().GetInternalField(0).(*reflect.Value)
+				bindObj := info.This().GetInternalField(0).(*BindObject)
+				value := bindObj.Target
 
 				field := value.Elem().FieldByName(name)
 
-				if !field.IsValid() {
-					info.CurrentScope().ThrowException("could't found property '" + typeName + "." + name + "'")
+				if field.IsValid() {
+					engine.SetJsValueToGo(field, jsvalue)
 					return
 				}
 
-				engine.SetJsValueToGo(field, jsvalue)
+				bindObj.Set(name, jsvalue)
 			},
 			// query
 			func(name string, info PropertyCallbackInfo) {
-				value := info.This().ToObject().GetInternalField(0).(*reflect.Value)
+				bindObj := info.This().ToObject().GetInternalField(0).(*BindObject)
+				value := bindObj.Target
 
-				info.ReturnValue().SetBoolean(
-					value.Elem().FieldByName(name).IsValid() || value.MethodByName(name).IsValid(),
-				)
+				if value.Elem().FieldByName(name).IsValid() || value.MethodByName(name).IsValid() {
+					info.ReturnValue().SetBoolean(true)
+					return
+				}
 			},
 			// delete
 			nil,
@@ -140,14 +241,16 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 		return jsObjectVal
 	// TODO: Don't create many function template !!!!
 	case reflect.Func:
-		return engine.GoFuncToJsFunc(value).NewFunction()
+		return engine.GoFuncToJsFunc(value)
 	case reflect.Ptr:
 		elemType := value.Type().Elem()
 		if elemType.Kind() == reflect.Struct {
 			if objectTemplate, exits := engine.bindTypes[elemType]; exits {
 				objectVal := engine.NewInstanceOf(objectTemplate)
 				object := objectVal.ToObject()
-				object.SetInternalField(0, &value)
+				object.SetInternalField(0, &BindObject{
+					Target: value,
+				})
 				return objectVal
 			}
 		}
@@ -160,7 +263,9 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 				objectVal := engine.NewInstanceOf(objectTemplate)
 				object := objectVal.ToObject()
 				valuePtr := value.Addr()
-				object.SetInternalField(0, &valuePtr)
+				object.SetInternalField(0, &BindObject{
+					Target: valuePtr,
+				})
 				return objectVal
 			}
 		}
@@ -168,57 +273,11 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 	return engine.Undefined()
 }
 
-func (engine *Engine) GoFuncToJsFunc(gofunc reflect.Value) *FunctionTemplate {
-	funcType := gofunc.Type()
-	return engine.NewFunctionTemplate(func(callbackInfo FunctionCallbackInfo) {
-		numIn := funcType.NumIn()
-		numArgs := callbackInfo.Length()
-
-		var out []reflect.Value
-
-		if funcType.IsVariadic() {
-			in := make([]reflect.Value, 1)
-			in[0] = reflect.MakeSlice(funcType.In(0), numArgs, numArgs)
-
-			for i := 0; i < numArgs; i++ {
-				jsvalue := callbackInfo.Get(i)
-				engine.SetJsValueToGo(in[0].Index(i), jsvalue)
-			}
-
-			out = gofunc.CallSlice(in)
-		} else {
-			in := make([]reflect.Value, numIn)
-
-			for i := 0; i < len(in); i++ {
-				jsvalue := callbackInfo.Get(i)
-				in[i] = reflect.Indirect(reflect.New(funcType.In(i)))
-				engine.SetJsValueToGo(in[i], jsvalue)
-			}
-
-			out = gofunc.Call(in)
-		}
-
-		if out == nil {
-			callbackInfo.CurrentScope().ThrowException("argument number not match")
-			return
-		}
-
-		switch {
-		// when Go function returns only one value
-		case len(out) == 1:
-			callbackInfo.ReturnValue().Set(engine.GoValueToJsValue(out[0]))
-		// when Go function returns multi-value, put them in a JavaScript array
-		case len(out) > 1:
-			jsResults := engine.NewArray(len(out))
-			jsResultsArray := jsResults.ToArray()
-
-			for i := 0; i < len(out); i++ {
-				jsResultsArray.SetElement(i, engine.GoValueToJsValue(out[i]))
-			}
-
-			callbackInfo.ReturnValue().Set(jsResults)
-		}
-	}, nil)
+func (engine *Engine) GoFuncToJsFunc(gofunc reflect.Value) *Value {
+	jsFunc := engine.bindFuncBase.NewFunction()
+	jsFuncObj := jsFunc.ToObject()
+	jsFuncObj.SetProperty("__go_bind__", engine.NewExternal(&gofunc).Value, PA_None)
+	return jsFunc
 }
 
 var (

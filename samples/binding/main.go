@@ -1,7 +1,6 @@
 package main
 
 import "fmt"
-import "reflect"
 import "../../"
 
 type MyType struct {
@@ -30,7 +29,7 @@ func main() {
 	})
 
 	global.Bind("test", func(obj *v8.Object) {
-		raw := obj.GetInternalField(0).(*reflect.Value)
+		raw := obj.GetInternalField(0).(*v8.BindObject).Target
 		raw.Interface().(*MyType).Callback(123, "dada")
 	})
 

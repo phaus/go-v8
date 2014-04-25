@@ -143,6 +143,8 @@ extern int32_t V8_Value_ToInt32(void* value);
 
 extern char* V8_Value_ToString(void* value);
 
+extern void V8_Value_SetFieldOwnerInfo(void* value, void* engine, int64_t ownerId);
+
 extern void* V8_Undefined(void* engine);
 
 extern void* V8_Null(void* engine);
@@ -158,6 +160,8 @@ extern void* V8_NewDate(void* engine, double val);
 extern void* V8_NewString(void* engine, const char* val, int val_length);
 
 extern void* V8_NewExternal(void* engine, void* data);
+
+extern void* V8_External_Value(void* external);
 
 /*
 object
@@ -201,8 +205,6 @@ extern int V8_Object_InternalFieldCount(void* value);
 extern void* V8_Object_GetInternalField(void* value, int index);
 
 extern void V8_Object_SetInternalField(void* value, int index, void* data);
-
-extern void V8_Object_SetFieldOwnerInfo(void* value, void* engine, int64_t ownerId);
 
 extern void* V8_AccessorCallbackInfo_This(void *info, AccessorDataEnum type);
 

@@ -32,12 +32,13 @@ type Engine struct {
 	objectTemplateId     int64
 	objectTemplates      map[int64]*ObjectTemplate
 	fieldOwnerId         int64
-	fieldOwners          map[int64]*Object
+	fieldOwners          map[int64]interface{}
 	messageListenerId    int64
 	firstMessageListener *messageListener
 	lastMessageListener  *messageListener
 
-	bindTypes map[reflect.Type]*ObjectTemplate
+	bindTypes    map[reflect.Type]*ObjectTemplate
+	bindFuncBase *FunctionTemplate
 }
 
 func NewEngine() *Engine {
@@ -47,22 +48,24 @@ func NewEngine() *Engine {
 		return nil
 	}
 
-	result := &Engine{
+	engine := &Engine{
 		self:            self,
 		funcTemplates:   make(map[int64]*FunctionTemplate),
 		objectTemplates: make(map[int64]*ObjectTemplate),
-		fieldOwners:     make(map[int64]*Object),
+		fieldOwners:     make(map[int64]interface{}),
 		bindTypes:       make(map[reflect.Type]*ObjectTemplate),
 	}
 
-	runtime.SetFinalizer(result, func(e *Engine) {
+	engine.initBindAPI()
+
+	runtime.SetFinalizer(engine, func(e *Engine) {
 		if traceDispose {
 			println("v8.Engine.Dispose()", e.self)
 		}
 		C.V8_DisposeEngine(e.self)
 	})
 
-	return result
+	return engine
 }
 
 //export go_panic

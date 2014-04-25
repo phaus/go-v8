@@ -13,10 +13,11 @@ import "time"
 // The superclass of all JavaScript values and objects.
 //
 type Value struct {
-	engine  *Engine
-	self    unsafe.Pointer
-	isType  int
-	notType int
+	engine       *Engine
+	self         unsafe.Pointer
+	isType       int
+	notType      int
+	fieldOwnerId int64
 }
 
 func newValue(engine *Engine, self unsafe.Pointer) *Value {
@@ -134,32 +135,50 @@ func (v *Value) ToObject() *Object {
 	if v == nil {
 		return nil
 	}
-	return &Object{v, 0, nil, nil}
+	return &Object{v, nil, nil}
 }
 
 func (v *Value) ToArray() *Array {
 	if v == nil {
 		return nil
 	}
-	return &Array{&Object{v, 0, nil, nil}}
+	return &Array{&Object{v, nil, nil}}
 }
 
 func (v *Value) ToRegExp() *RegExp {
 	if v == nil {
 		return nil
 	}
-	return &RegExp{&Object{v, 0, nil, nil}, "", false, RF_None, false}
+	return &RegExp{&Object{v, nil, nil}, "", false, RF_None, false}
 }
 
 func (v *Value) ToFunction() *Function {
 	if v == nil {
 		return nil
 	}
-	return &Function{&Object{v, 0, nil, nil}}
+	return &Function{&Object{v, nil, nil}}
+}
+
+func (v *Value) ToExternal() *External {
+	if v == nil {
+		return nil
+	}
+	return &External{v, nil}
 }
 
 func (v *Value) String() string {
 	return v.ToString()
+}
+
+// Keep the Object alive when it refence by JS
+func (v *Value) setOwner(self interface{}) {
+	// the object reference by engine
+	if v.fieldOwnerId == 0 {
+		v.engine.fieldOwnerId += 1
+		v.fieldOwnerId = v.engine.fieldOwnerId
+		v.engine.fieldOwners[v.fieldOwnerId] = self
+		C.V8_Value_SetFieldOwnerInfo(v.self, unsafe.Pointer(v.engine), C.int64_t(v.fieldOwnerId))
+	}
 }
 
 const (

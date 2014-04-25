@@ -655,6 +655,23 @@ void* V8_NewString(void* engine, const char* val, int val_length) {
 	);
 }
 
+void* V8_NewExternal(void* engine, void* data) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	return new_V8_Value(the_engine, External::New(isolate, data));
+}
+
+void* V8_External_Value(void* value) {
+	VALUE_SCOPE(value);
+	Local<External> local_external = Local<External>::Cast(local_value);
+	return local_external->Value();
+}
+
+void V8_Value_SetFieldOwnerInfo(void* value, void* engine, int64_t ownerId) {
+	V8_Value* the_value = static_cast<V8_Value*>(value);
+	the_value->fieldOwnerInfo = new V8_FieldOwnerInfo(engine, ownerId);
+}
+
 /*
 object
 */
@@ -680,11 +697,6 @@ void V8_Object_SetInternalField(void* value, int index, void* data) {
 	VALUE_SCOPE(value);
 	Local<Object> obj = Local<Object>::Cast(local_value);
 	obj->SetInternalField(index, External::New(isolate, data));
-}
-
-void V8_Object_SetFieldOwnerInfo(void* value, void* engine, int64_t ownerId) {
-	V8_Value* the_value = static_cast<V8_Value*>(value);
-	the_value->fieldOwnerInfo = new V8_FieldOwnerInfo(engine, ownerId);
 }
 
 int V8_Object_SetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {

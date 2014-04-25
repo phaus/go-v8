@@ -17,11 +17,33 @@ const (
 	PA_DontDelete                   = 1 << 2
 )
 
+type External struct {
+	*Value
+	data interface{}
+}
+
+func (e *Engine) NewExternal(value interface{}) *External {
+	external := &External{
+		newValue(e, C.V8_NewExternal(e.self, unsafe.Pointer(&value))),
+		value,
+	}
+	external.setOwner(external)
+	return external
+}
+
+func (ex *External) GetValue() interface{} {
+	if ex.data == nil {
+		ptr := C.V8_External_Value(ex.self)
+		ex.data = *(*interface{})(ptr)
+	}
+
+	return ex.data
+}
+
 // A JavaScript object (ECMA-262, 4.3.3)
 //
 type Object struct {
 	*Value
-	fieldOwnerId   int64
 	internalFields []interface{}
 	accessor       *accessorInfo
 }
@@ -67,18 +89,10 @@ func (o *Object) InternalFieldCount() int {
 
 func (o *Object) GetInternalField(index int) interface{} {
 	data := C.V8_Object_GetInternalField(o.self, C.int(index))
-	return *(*interface{})(data)
-}
-
-// Keep the Object alive when it refence by JS
-func (o *Object) setOwner() {
-	// the object reference by engine
-	if o.fieldOwnerId == 0 {
-		o.engine.fieldOwnerId += 1
-		o.fieldOwnerId = o.engine.fieldOwnerId
-		o.engine.fieldOwners[o.fieldOwnerId] = o
-		C.V8_Object_SetFieldOwnerInfo(o.self, unsafe.Pointer(o.engine), C.int64_t(o.fieldOwnerId))
+	if data == nil {
+		return nil
 	}
+	return *(*interface{})(data)
 }
 
 func (o *Object) SetInternalField(index int, value interface{}) {
@@ -90,7 +104,7 @@ func (o *Object) SetInternalField(index int, value interface{}) {
 
 	// the value reference by object so the value can't destory by GC
 	o.internalFields = append(o.internalFields, value)
-	o.setOwner()
+	o.setOwner(o)
 }
 
 func (o *Object) SetAccessor(
@@ -121,7 +135,7 @@ func (o *Object) setAccessor(info *accessorInfo) {
 	}
 
 	o.accessor = info
-	o.setOwner()
+	o.setOwner(o)
 
 	C.V8_Object_SetAccessor(
 		o.self,
