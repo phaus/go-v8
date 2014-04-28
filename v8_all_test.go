@@ -221,6 +221,149 @@ func Test_TryCatch_WithScriptOrigin(t *testing.T) {
 	runtime.GC()
 }
 
+func Test_TryCatchException(t *testing.T) {
+	engine.SetCaptureStackTraceForUncaughtExceptions(true, 1)
+	defer engine.SetCaptureStackTraceForUncaughtExceptions(false, 0)
+
+	engine.NewContext(nil).Scope(func(cs ContextScope) {
+		script := engine.Compile([]byte(`
+		function a(c) {
+			c();
+		}
+
+		function b() {
+			throw new Error("a nice error");
+		}
+
+		a(b);
+		`), engine.NewScriptOrigin("/test.js", 1, 0))
+
+		err := cs.TryCatchException(func() {
+			cs.Run(script)
+		})
+		if err == nil {
+			t.Fatal("expected an error")
+		} else if !err.IsObject() {
+			t.Fatal("expected an object")
+		}
+		obj := err.ToObject()
+		if !obj.HasProperty("stack") {
+			t.Fatal("expected stacktrace")
+		} else if len(obj.GetProperty("stack").ToString()) == 0 {
+			t.Fatal("expected stacktrace")
+		}
+
+		msg := err.Message
+		if msg.Message != "Uncaught Error: a nice error" {
+			t.Fatalf("msg.Message: should be %q not %q", "Uncaught Error: a nice error", msg.Message)
+		}
+		if msg.ScriptResourceName != "/test.js" {
+			t.Fatalf("msg.ScriptResourceName: should be %q not %q", "/test.js", msg.ScriptResourceName)
+		}
+		if len(msg.StackTrace) != 1 {
+			t.Fatalf("len(msg.StackTrace): should be %d not %d", 1, len(msg.StackTrace))
+		}
+	})
+
+	runtime.GC()
+}
+
+func Test_TryCatchException_Custom(t *testing.T) {
+	engine.SetCaptureStackTraceForUncaughtExceptions(true, 1)
+	defer engine.SetCaptureStackTraceForUncaughtExceptions(false, 0)
+
+	engine.NewContext(nil).Scope(func(cs ContextScope) {
+		script := engine.Compile([]byte(`
+		function a(c) {
+			c();
+		}
+
+		function b() {
+			e = new Error("a nice error");
+			e.customProperty = "custom property"
+			throw e;
+		}
+
+		a(b);
+		`), engine.NewScriptOrigin("/test.js", 1, 0))
+
+		err := cs.TryCatchException(func() {
+			cs.Run(script)
+		})
+		if err == nil {
+			t.Fatal("expected an error")
+		} else if !err.IsObject() {
+			t.Fatal("expected an object")
+		}
+		obj := err.ToObject()
+		if !obj.HasProperty("stack") {
+			t.Fatal("expected stacktrace")
+		} else if len(obj.GetProperty("stack").ToString()) == 0 {
+			t.Fatal("expected stacktrace")
+		} else if !obj.HasProperty("customProperty") {
+			t.Fatal("expected customProperty")
+		} else if obj.GetProperty("customProperty").ToString() != "custom property" {
+			t.Fatalf("err.customProperty: should be %q not %q", "customProperty", obj.GetProperty("customProperty").ToString())
+		}
+
+		msg := err.Message
+		if msg.Message != "Uncaught Error: a nice error" {
+			t.Fatalf("msg.Message: should be %q not %q", "Uncaught Error: a nice error", msg.Message)
+		}
+		if msg.ScriptResourceName != "/test.js" {
+			t.Fatalf("msg.ScriptResourceName: should be %q not %q", "/test.js", msg.ScriptResourceName)
+		}
+		if len(msg.StackTrace) != 1 {
+			t.Fatalf("len(msg.StackTrace): should be %d not %d", 1, len(msg.StackTrace))
+		}
+	})
+
+	runtime.GC()
+}
+
+func Test_TryCatchException_Primitive(t *testing.T) {
+	engine.SetCaptureStackTraceForUncaughtExceptions(true, 1)
+	defer engine.SetCaptureStackTraceForUncaughtExceptions(false, 0)
+
+	engine.NewContext(nil).Scope(func(cs ContextScope) {
+		script := engine.Compile([]byte(`
+		function a(c) {
+			c();
+		}
+
+		function b() {
+			throw 1111;
+		}
+
+		a(b);
+		`), engine.NewScriptOrigin("/test.js", 1, 0))
+
+		err := cs.TryCatchException(func() {
+			cs.Run(script)
+		})
+		if err == nil {
+			t.Fatal("expected an error")
+		} else if !err.IsNumber() {
+			t.Fatal("expected an integer")
+		} else if err.ToInteger() != 1111 {
+			t.Fatalf("err: should be %q not %q", 1111, err.ToInteger())
+		}
+
+		msg := err.Message
+		if msg.Message != "Uncaught 1111" {
+			t.Fatalf("msg.Message: should be %q not %q", "Uncaught 1111", msg.Message)
+		}
+		if msg.ScriptResourceName != "/test.js" {
+			t.Fatalf("msg.ScriptResourceName: should be %q not %q", "/test.js", msg.ScriptResourceName)
+		}
+		if len(msg.StackTrace) != 1 {
+			t.Fatalf("len(msg.StackTrace): should be %d not %d", 1, len(msg.StackTrace))
+		}
+	})
+
+	runtime.GC()
+}
+
 func Test_Values(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 
@@ -1470,6 +1613,16 @@ func Benchmark_TryCatch(b *testing.B) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		for i := 0; i < b.N; i++ {
 			cs.TryCatch(func() {
+				cs.Eval("a[=1;")
+			})
+		}
+	})
+}
+
+func Benchmark_TryCatchException(b *testing.B) {
+	engine.NewContext(nil).Scope(func(cs ContextScope) {
+		for i := 0; i < b.N; i++ {
+			cs.TryCatchException(func() {
 				cs.Eval("a[=1;")
 			})
 		}
