@@ -91,6 +91,26 @@ func (cs ContextScope) TryCatch(callback func()) error {
 	return (*Message)(msg)
 }
 
+type Exception struct {
+	*Value
+	*Message
+}
+
+func (cs ContextScope) TryCatchException(callback func()) *Exception {
+	e := C.V8_Context_TryCatchException(cs.context.self, unsafe.Pointer(&callback))
+	if e == nil {
+		return nil
+	}
+
+	excep := (*exception)(e)
+	val := newValue(cs.GetEngine(), excep.Pointer)
+	if val == nil {
+		return nil
+	}
+
+	return &Exception{val, excep.Message}
+}
+
 func (cs ContextScope) Global() *Object {
 	return newValue(cs.GetEngine(), C.V8_Context_Global(cs.context.self)).ToObject()
 }

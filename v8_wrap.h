@@ -79,6 +79,8 @@ extern void V8_Context_ThrowException(void* context, const char* err, int err_le
 
 extern void* V8_Context_TryCatch(void* context, void* callback);
 
+extern void* V8_Context_TryCatchException(void* context, void* callback);
+
 /*
 script
 */

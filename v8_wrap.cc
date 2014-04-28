@@ -424,6 +424,38 @@ void* V8_Context_TryCatch(void* context, void* callback) {
 	return V8_Make_Message(message);
 }
 
+void* V8_Context_TryCatchException(void* context, void* callback) {
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+
+	TryCatch try_catch;
+
+	go_try_catch_callback(callback);
+
+	if (!try_catch.HasCaught()) {
+		return NULL;
+	}
+
+	String::Utf8Value exception(try_catch.Exception());
+	Handle<Message> message = try_catch.Message();
+
+	if (message.IsEmpty()) {
+		return go_make_message(
+			CopyString(exception),
+			NULL,
+			NULL,
+			NULL,
+			0,
+			0,
+			0,
+			0,
+			0
+		);
+	}
+
+	return go_make_exception(new_V8_Value(ctx, try_catch.Exception()), V8_Make_Message(message));
+}
+
 /*
 script
 */
