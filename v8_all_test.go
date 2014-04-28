@@ -142,6 +142,34 @@ func Test_HelloWorld(t *testing.T) {
 	runtime.GC()
 }
 
+func Test_ThrowException(t *testing.T) {
+	template := engine.NewObjectTemplate()
+	template.Bind("Call", func() {
+		engine.NewContext(nil).Scope(func(cs ContextScope) {
+			cs.ThrowException("a \"nice\" error")
+		})
+	})
+
+	engine.NewContext(template).Scope(func(cs ContextScope) {
+		script := engine.Compile([]byte(`
+		try {
+			Call()
+		} catch(e) {
+			e
+		}
+		`), nil)
+
+		value := cs.Run(script)
+		if !value.IsString() {
+			t.Fatalf("expected string")
+		} else if value.ToString() != "a \"nice\" error" {
+			t.Fatalf("value should be %q not %q", "a \"nice\" error", value.ToString())
+		}
+	})
+
+	runtime.GC()
+}
+
 func Test_TryCatch(t *testing.T) {
 	engine.SetCaptureStackTraceForUncaughtExceptions(true, 1)
 	defer engine.SetCaptureStackTraceForUncaughtExceptions(false, 0)
