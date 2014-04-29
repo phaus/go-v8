@@ -74,8 +74,35 @@ func go_try_catch_callback(callback unsafe.Pointer) {
 	(*(*func())(callback))()
 }
 
+func escape(s string) string {
+	output := ""
+	for _, r := range s {
+		switch r {
+		case '"':
+			output += "\\\""
+		case '\\':
+			output += "\\\\"
+		case '/':
+			output += "\\/"
+		case '\n':
+			output += "\\n"
+		case '\r':
+			output += "\\r"
+		case '\t':
+			output += "\\t"
+		case '\b':
+			output += "\\b"
+		case '\f':
+			output += "\\f"
+		default:
+			output += string(r)
+		}
+	}
+	return output
+}
+
 func (cs ContextScope) ThrowException(err string) {
-	cs.Eval(`throw "` + err + `"`)
+	cs.Eval(`throw "` + escape(err) + `"`)
 	//
 	// TODO: use Isolate::ThrowException() will make FunctionTemplate::GetFunction() returns NULL, why?
 	//
