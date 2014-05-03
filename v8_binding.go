@@ -243,7 +243,11 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 	case reflect.Func:
 		return engine.GoFuncToJsFunc(value)
 	case reflect.Ptr:
-		elemType := value.Type().Elem()
+		valType := value.Type()
+		if valType == typeOfValue {
+			return value.Interface().(*Value)
+		}
+		elemType := valType.Elem()
 		if elemType.Kind() == reflect.Struct {
 			if objectTemplate, exits := engine.bindTypes[elemType]; exits {
 				objectVal := engine.NewInstanceOf(objectTemplate)
