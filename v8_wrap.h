@@ -238,6 +238,19 @@ extern char* V8_RegExp_Pattern(void* value);
 extern int V8_RegExp_Flags(void* value);
 
 /*
+error
+*/
+extern void* V8_Exception_RangeError(void* engine, const char* val, int val_length);
+
+extern void* V8_Exception_ReferenceError(void* engine, const char* val, int val_length);
+
+extern void* V8_Exception_SyntaxError(void* engine, const char* val, int val_length);
+
+extern void* V8_Exception_TypeError(void* engine, const char* val, int val_length);
+
+extern void* V8_Exception_Error(void* engine, const char* val, int val_length);
+
+/*
 return value
 */
 extern void V8_ReturnValue_Set(void* rv, void* result);
