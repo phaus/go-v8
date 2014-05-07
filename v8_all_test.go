@@ -205,6 +205,42 @@ func Test_ThrowException(t *testing.T) {
 	runtime.GC()
 }
 
+func Test_ThrowException2(t *testing.T) {
+	template := engine.NewObjectTemplate()
+	template.Bind("Call", func() {
+		val := engine.NewObject()
+		obj := val.ToObject()
+		obj.SetProperty("name", engine.NewString("test object"), PA_None)
+		obj.SetProperty("id", engine.NewInteger(1234), PA_None)
+		engine.NewContext(nil).Scope(func(cs ContextScope) {
+			cs.ThrowException2(val)
+		})
+	})
+
+	engine.NewContext(template).Scope(func(cs ContextScope) {
+		script := engine.Compile([]byte(`
+		try {
+			Call();
+		} catch(e) {
+			e;
+		}
+		`), nil)
+
+		retVal := cs.Run(script)
+		if !retVal.IsObject() {
+			t.Fatalf("expected object")
+		}
+		retObj := retVal.ToObject()
+		if !retObj.HasProperty("name") || retObj.GetProperty("name").ToString() != "test object" {
+			t.Fatalf("name should be %s not %s", "test object", retObj.GetProperty("name").ToString())
+		} else if !retObj.HasProperty("id") || retObj.GetProperty("id").ToNumber() != 1234 {
+			t.Fatalf("id should be %d not %d", 1234, retObj.GetProperty("id").ToNumber())
+		}
+	})
+
+	runtime.GC()
+}
+
 func Test_TryCatch(t *testing.T) {
 	engine.SetCaptureStackTraceForUncaughtExceptions(true, 1)
 	defer engine.SetCaptureStackTraceForUncaughtExceptions(false, 0)
