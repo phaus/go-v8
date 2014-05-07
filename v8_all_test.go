@@ -170,7 +170,7 @@ func Test_ReturnValue(t *testing.T) {
 		retObj := retVal.ToObject()
 		if !retObj.HasProperty("name") || retObj.GetProperty("name").ToString() != "test object" ||
 			!retObj.HasProperty("id") || retObj.GetProperty("id").ToNumber() != 1234 {
-			t.Fatalf("value should be %q not %q", "{\"name\":\"test object\",\"id\":1234}", ToJSON(retVal))
+			t.Fatalf("value should be %q not %q", "{\"name\":\"test object\",\"id\":1234}", string(ToJSON(retVal)))
 		}
 	})
 
