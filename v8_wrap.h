@@ -77,6 +77,8 @@ extern void* V8_Context_Global(void* context);
 
 extern void V8_Context_ThrowException(void* context, const char* err, int err_length);
 
+extern void V8_Context_ThrowException2(void* value);
+
 extern void* V8_Context_TryCatch(void* context, void* callback);
 
 /*

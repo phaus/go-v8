@@ -345,6 +345,12 @@ void V8_Context_ThrowException(void* context, const char* err, int err_length) {
 	);
 }
 
+void V8_Context_ThrowException2(void* value) {
+	VALUE_SCOPE(value);
+
+	isolate->ThrowException(Local<Value>::New(isolate, local_value));
+}
+
 void* V8_Make_Message(Handle<Message> message) {
 	Handle<StackTrace> stack_trace = message->GetStackTrace();
 	void* go_stack_trace = NULL;

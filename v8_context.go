@@ -110,6 +110,10 @@ func (cs ContextScope) ThrowException(err string) {
 	//C.V8_Context_ThrowException(cs.context.self, (*C.char)(errPtr), C.int(len(err)))
 }
 
+func (cs ContextScope) ThrowException2(value *Value) {
+	C.V8_Context_ThrowException2(value.self)
+}
+
 func (cs ContextScope) TryCatch(callback func()) error {
 	msg := C.V8_Context_TryCatch(cs.context.self, unsafe.Pointer(&callback))
 	if msg == nil {
