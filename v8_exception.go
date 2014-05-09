@@ -135,3 +135,18 @@ func maybe_free(p unsafe.Pointer) {
 		C.free(p)
 	}
 }
+
+type exception struct {
+	unsafe.Pointer
+	*Message
+}
+
+//export go_make_exception
+func go_make_exception(value, message unsafe.Pointer) unsafe.Pointer {
+
+	msg := (*Message)(message)
+
+	go_exception := &exception{value, msg}
+
+	return unsafe.Pointer(go_exception)
+}
