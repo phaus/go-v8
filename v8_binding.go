@@ -50,23 +50,27 @@ func (engine *Engine) initBindAPI() {
 
 		var out []reflect.Value
 
+		in := make([]reflect.Value, numIn)
+		for i := 0; i < numIn-1; i++ {
+			jsvalue := callbackInfo.Get(i)
+			in[i] = reflect.Indirect(reflect.New(funcType.In(i)))
+			engine.SetJsValueToGo(in[i], jsvalue)
+		}
 		if funcType.IsVariadic() {
-			in := make([]reflect.Value, 1)
-			in[0] = reflect.MakeSlice(funcType.In(0), numArgs, numArgs)
+			sliceLen := numArgs - (numIn - 1)
+			in[numIn-1] = reflect.MakeSlice(funcType.In(numIn-1), sliceLen, sliceLen)
 
-			for i := 0; i < numArgs; i++ {
-				jsvalue := callbackInfo.Get(i)
-				engine.SetJsValueToGo(in[0].Index(i), jsvalue)
+			for i := 0; i < sliceLen; i++ {
+				jsvalue := callbackInfo.Get(numIn - 1 + i)
+				engine.SetJsValueToGo(in[numIn-1].Index(i), jsvalue)
 			}
 
 			out = gofunc.CallSlice(in)
 		} else {
-			in := make([]reflect.Value, numIn)
-
-			for i := 0; i < len(in); i++ {
-				jsvalue := callbackInfo.Get(i)
-				in[i] = reflect.Indirect(reflect.New(funcType.In(i)))
-				engine.SetJsValueToGo(in[i], jsvalue)
+			if numIn > 0 {
+				jsvalue := callbackInfo.Get(numIn - 1)
+				in[numIn-1] = reflect.Indirect(reflect.New(funcType.In(numIn - 1)))
+				engine.SetJsValueToGo(in[numIn-1], jsvalue)
 			}
 
 			out = gofunc.Call(in)
