@@ -107,7 +107,11 @@ func (cs ContextScope) ThrowException(err string) {
 	// TODO: use Isolate::ThrowException() will make FunctionTemplate::GetFunction() returns NULL, why?
 	//
 	//errPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&err)).Data)
-	//C.V8_Context_ThrowException(c.self, (*C.char)(errPtr), C.int(len(err)))
+	//C.V8_Context_ThrowException(cs.context.self, (*C.char)(errPtr), C.int(len(err)))
+}
+
+func (cs ContextScope) ThrowException2(value *Value) {
+	C.V8_Context_ThrowException2(value.self)
 }
 
 func (cs ContextScope) TryCatch(callback func()) error {

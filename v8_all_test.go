@@ -170,7 +170,7 @@ func Test_ReturnValue(t *testing.T) {
 		retObj := retVal.ToObject()
 		if !retObj.HasProperty("name") || retObj.GetProperty("name").ToString() != "test object" ||
 			!retObj.HasProperty("id") || retObj.GetProperty("id").ToNumber() != 1234 {
-			t.Fatalf("value should be %q not %q", "{\"name\":\"test object\",\"id\":1234}", ToJSON(retVal))
+			t.Fatalf("value should be %q not %q", "{\"name\":\"test object\",\"id\":1234}", string(ToJSON(retVal)))
 		}
 	})
 
@@ -201,6 +201,96 @@ func Test_ThrowException(t *testing.T) {
 			t.Fatalf("value should be %q not %q", "a \"nice\" error", value.ToString())
 		}
 	})
+
+	runtime.GC()
+}
+
+func Test_ThrowException2(t *testing.T) {
+	template := engine.NewObjectTemplate()
+	template.Bind("Call", func() {
+		val := engine.NewObject()
+		obj := val.ToObject()
+		obj.SetProperty("name", engine.NewString("test object"), PA_None)
+		obj.SetProperty("id", engine.NewInteger(1234), PA_None)
+		engine.NewContext(nil).Scope(func(cs ContextScope) {
+			cs.ThrowException2(val)
+		})
+	})
+
+	engine.NewContext(template).Scope(func(cs ContextScope) {
+		script := engine.Compile([]byte(`
+		try {
+			Call();
+		} catch(e) {
+			e;
+		}
+		`), nil)
+
+		retVal := cs.Run(script)
+		if !retVal.IsObject() {
+			t.Fatalf("expected object")
+		}
+		retObj := retVal.ToObject()
+		if !retObj.HasProperty("name") || retObj.GetProperty("name").ToString() != "test object" {
+			t.Fatalf("name should be %s not %s", "test object", retObj.GetProperty("name").ToString())
+		} else if !retObj.HasProperty("id") || retObj.GetProperty("id").ToNumber() != 1234 {
+			t.Fatalf("id should be %d not %d", 1234, retObj.GetProperty("id").ToNumber())
+		}
+	})
+
+	runtime.GC()
+}
+
+func Test_ThrowException2_Error(t *testing.T) {
+	template := engine.NewObjectTemplate()
+	template.Bind("RangeCall", func() {
+		engine.NewContext(nil).Scope(func(cs ContextScope) {
+			cs.ThrowException2(engine.NewRangeError("abcde"))
+		})
+	})
+	template.Bind("ReferenceCall", func() {
+		engine.NewContext(nil).Scope(func(cs ContextScope) {
+			cs.ThrowException2(engine.NewReferenceError("abcde"))
+		})
+	})
+	template.Bind("SyntaxCall", func() {
+		engine.NewContext(nil).Scope(func(cs ContextScope) {
+			cs.ThrowException2(engine.NewSyntaxError("abcde"))
+		})
+	})
+	template.Bind("TypeCall", func() {
+		engine.NewContext(nil).Scope(func(cs ContextScope) {
+			cs.ThrowException2(engine.NewTypeError("abcde"))
+		})
+	})
+	template.Bind("Call", func() {
+		engine.NewContext(nil).Scope(func(cs ContextScope) {
+			cs.ThrowException2(engine.NewError("abcde"))
+		})
+	})
+
+	for _, prefix := range []string{"Range", "Reference", "Syntax", "Type", ""} {
+		engine.NewContext(template).Scope(func(cs ContextScope) {
+			script := engine.Compile([]byte(`
+			try {
+				`+prefix+`Call();
+			} catch(e) {
+				e;
+			}
+			`), nil)
+
+			retVal := cs.Run(script)
+			if !retVal.IsObject() {
+				t.Fatalf("expected object")
+			}
+			retObj := retVal.ToObject()
+			if !retObj.HasProperty("name") || retObj.GetProperty("name").ToString() != prefix+"Error" {
+				t.Fatalf("name should be %s not %s", prefix+"Error", retObj.GetProperty("name").ToString())
+			} else if !retObj.HasProperty("message") || retObj.GetProperty("message").ToString() != "abcde" {
+				t.Fatalf("message should be %s not %s", "abcde", retObj.GetProperty("message").ToString())
+			}
+		})
+	}
 
 	runtime.GC()
 }

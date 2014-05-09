@@ -100,6 +100,31 @@ func (e *Engine) NewString(value string) *Value {
 	))
 }
 
+func (e *Engine) NewRangeError(message string) *Value {
+	msgPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&message)).Data)
+	return newValue(e, C.V8_Exception_RangeError(e.self, (*C.char)(msgPtr), C.int(len(message))))
+}
+
+func (e *Engine) NewReferenceError(message string) *Value {
+	msgPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&message)).Data)
+	return newValue(e, C.V8_Exception_ReferenceError(e.self, (*C.char)(msgPtr), C.int(len(message))))
+}
+
+func (e *Engine) NewSyntaxError(message string) *Value {
+	msgPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&message)).Data)
+	return newValue(e, C.V8_Exception_SyntaxError(e.self, (*C.char)(msgPtr), C.int(len(message))))
+}
+
+func (e *Engine) NewTypeError(message string) *Value {
+	msgPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&message)).Data)
+	return newValue(e, C.V8_Exception_TypeError(e.self, (*C.char)(msgPtr), C.int(len(message))))
+}
+
+func (e *Engine) NewError(message string) *Value {
+	msgPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&message)).Data)
+	return newValue(e, C.V8_Exception_Error(e.self, (*C.char)(msgPtr), C.int(len(message))))
+}
+
 func (v *Value) ToBoolean() bool {
 	return C.V8_Value_ToBoolean(v.self) == 1
 }

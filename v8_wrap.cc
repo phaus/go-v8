@@ -345,6 +345,12 @@ void V8_Context_ThrowException(void* context, const char* err, int err_length) {
 	);
 }
 
+void V8_Context_ThrowException2(void* value) {
+	VALUE_SCOPE(value);
+
+	isolate->ThrowException(Local<Value>::New(isolate, local_value));
+}
+
 void* V8_Make_Message(Handle<Message> message) {
 	Handle<StackTrace> stack_trace = message->GetStackTrace();
 	void* go_stack_trace = NULL;
@@ -1096,6 +1102,49 @@ char* V8_RegExp_Pattern(void* value) {
 int V8_RegExp_Flags(void* value) {
 	VALUE_SCOPE(value);
 	return Local<RegExp>::Cast(local_value)->GetFlags();
+}
+
+/*
+error
+*/
+void* V8_Exception_RangeError(void* engine, const char* val, int val_length) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	return new_V8_Value(the_engine,	Exception::RangeError(
+		String::NewFromOneByte(isolate, (uint8_t*)val, String::kNormalString, val_length)
+	));
+}
+
+void* V8_Exception_ReferenceError(void* engine, const char* val, int val_length) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	return new_V8_Value(the_engine,	Exception::ReferenceError(
+		String::NewFromOneByte(isolate, (uint8_t*)val, String::kNormalString, val_length)
+	));
+}
+
+void* V8_Exception_SyntaxError(void* engine, const char* val, int val_length) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	return new_V8_Value(the_engine,	Exception::SyntaxError(
+		String::NewFromOneByte(isolate, (uint8_t*)val, String::kNormalString, val_length)
+	));
+}
+
+void* V8_Exception_TypeError(void* engine, const char* val, int val_length) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	return new_V8_Value(the_engine,	Exception::TypeError(
+		String::NewFromOneByte(isolate, (uint8_t*)val, String::kNormalString, val_length)
+	));
+}
+
+void* V8_Exception_Error(void* engine, const char* val, int val_length) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	return new_V8_Value(the_engine,	Exception::Error(
+		String::NewFromOneByte(isolate, (uint8_t*)val, String::kNormalString, val_length)
+	));
 }
 
 /*
