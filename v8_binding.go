@@ -216,9 +216,11 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 	case reflect.Int8, reflect.Int16, reflect.Int32:
 		return engine.NewInteger(value.Int())
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32:
-		return engine.NewInteger(value.Int())
-	case reflect.Int, reflect.Uint, reflect.Int64, reflect.Uint64:
+		return engine.NewInteger(int64(value.Uint()))
+	case reflect.Int, reflect.Int64:
 		return engine.NewNumber(float64(value.Int()))
+    case reflect.Uint, reflect.Uint64:
+		return engine.NewNumber(float64(value.Uint()))
 	case reflect.Float32, reflect.Float64:
 		return engine.NewNumber(value.Float())
 	case reflect.Array, reflect.Slice:
