@@ -50,3 +50,33 @@ func Test_Bind_Variadic(t *testing.T) {
 
 	runtime.GC()
 }
+
+func Test_Bind_Function(t *testing.T) {
+	template := engine.NewObjectTemplate()
+
+	goFunc1 := func(text string, obj *Object, callback *Function) {
+		t.Log("fetch")
+		for i := 0; i < 10; i++ {
+			t.Log(i)
+			callback.Call(engine.NewString(text), obj.Value)
+		}
+	}
+
+	goFunc2 := func(text1, text2 string) {
+		t.Logf("print(%s, %s)", text1, text2)
+	}
+
+	template.Bind("fetch", goFunc1)
+
+	template.Bind("print", goFunc2)
+
+	engine.NewContext(template).Scope(func(cs ContextScope) {
+		cs.Eval(`
+		var testObj = {Name: function() {
+			return "test object"
+		}};
+		fetch("test", testObj, function(text, obj) {
+			print(text, obj.Name())
+		});`)
+	})
+}
