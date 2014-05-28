@@ -90,10 +90,36 @@ type BindingTest struct {
 	Second uint32
 }
 
+func Test_Bind_Struct(t *testing.T) {
+	template := engine.NewObjectTemplate()
+
+	template.Bind("BindingTest", BindingTest{})
+
+	template.Bind("Test", func() BindingTest {
+		return BindingTest{-1, 1}
+	})
+
+	engine.NewContext(template).Scope(func(cs ContextScope) {
+		if err := cs.TryCatch(func() {
+			retVal := cs.Eval(`Test()`)
+
+			if retVal.ToObject().GetProperty("First").ToInt32() != -1 {
+				t.Fatalf(`retVal.ToObject().GetProperty("First").ToInt32() != -1`)
+			}
+
+			if retVal.ToObject().GetProperty("Second").ToUint32() != 1 {
+				t.Fatalf(`retVal.ToObject().GetProperty("Second").ToUint32() != 1`)
+			}
+		}); err != nil {
+			t.Fatal(err)
+		}
+	})
+}
+
 func Test_Bind_Integers(t *testing.T) {
 	template := engine.NewObjectTemplate()
 
-	template.Bind("BindingTest", &BindingTest{})
+	template.Bind("BindingTest", BindingTest{})
 
 	engine.NewContext(template).Scope(func(cs ContextScope) {
 		cs.Eval(`

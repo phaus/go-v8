@@ -142,7 +142,7 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 				bindObj := info.This().GetInternalField(0).(*BindObject)
 				value := bindObj.Target
 
-				field := value.Elem().FieldByName(name)
+				field := reflect.Indirect(value).FieldByName(name)
 
 				if field.IsValid() {
 					info.ReturnValue().Set(engine.GoValueToJsValue(field))
@@ -170,7 +170,7 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 				bindObj := info.This().GetInternalField(0).(*BindObject)
 				value := bindObj.Target
 
-				field := value.Elem().FieldByName(name)
+				field := reflect.Indirect(value).FieldByName(name)
 
 				if field.IsValid() {
 					engine.SetJsValueToGo(field, jsvalue)
@@ -184,7 +184,7 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 				bindObj := info.This().ToObject().GetInternalField(0).(*BindObject)
 				value := bindObj.Target
 
-				if value.Elem().FieldByName(name).IsValid() || value.MethodByName(name).IsValid() {
+				if reflect.Indirect(value).FieldByName(name).IsValid() || value.MethodByName(name).IsValid() {
 					info.ReturnValue().SetBoolean(true)
 					return
 				}
@@ -219,7 +219,7 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 		return engine.NewInteger(int64(value.Uint()))
 	case reflect.Int, reflect.Int64:
 		return engine.NewNumber(float64(value.Int()))
-    case reflect.Uint, reflect.Uint64:
+	case reflect.Uint, reflect.Uint64:
 		return engine.NewNumber(float64(value.Uint()))
 	case reflect.Float32, reflect.Float64:
 		return engine.NewNumber(value.Float())
@@ -272,9 +272,8 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 			if objectTemplate, exits := engine.bindTypes[value.Type()]; exits {
 				objectVal := engine.NewInstanceOf(objectTemplate)
 				object := objectVal.ToObject()
-				valuePtr := value.Addr()
 				object.SetInternalField(0, &BindObject{
-					Target: valuePtr,
+					Target: value,
 				})
 				return objectVal
 			}
