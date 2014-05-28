@@ -37,8 +37,7 @@ type Engine struct {
 	firstMessageListener *messageListener
 	lastMessageListener  *messageListener
 
-	bindTypes    map[reflect.Type]*ObjectTemplate
-	bindFuncBase *FunctionTemplate
+	bindTypes map[reflect.Type]*ObjectTemplate
 }
 
 func NewEngine() *Engine {
@@ -55,8 +54,6 @@ func NewEngine() *Engine {
 		fieldOwners:     make(map[int64]interface{}),
 		bindTypes:       make(map[reflect.Type]*ObjectTemplate),
 	}
-
-	engine.initBindAPI()
 
 	runtime.SetFinalizer(engine, func(e *Engine) {
 		if traceDispose {

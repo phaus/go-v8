@@ -181,7 +181,7 @@ func (v *Value) ToFunction() *Function {
 	if v == nil {
 		return nil
 	}
-	return &Function{&Object{v, nil, nil}}
+	return &Function{&Object{v, nil, nil}, nil, nil}
 }
 
 func (v *Value) ToExternal() *External {

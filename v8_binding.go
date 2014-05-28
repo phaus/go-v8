@@ -40,63 +40,61 @@ func (bo *BindObject) Get(name string) *Value {
 	return nil
 }
 
-func (engine *Engine) initBindAPI() {
-	engine.bindFuncBase = engine.NewFunctionTemplate(func(callbackInfo FunctionCallbackInfo) {
-		gofunc := callbackInfo.Callee().GetProperty("__go_bind__").ToExternal().GetValue().(*reflect.Value)
-		funcType := gofunc.Type()
+func bindFuncCallback(callbackInfo FunctionCallbackInfo) {
+	gofunc := callbackInfo.Data().(reflect.Value)
+	funcType := gofunc.Type()
 
-		numIn := funcType.NumIn()
-		numArgs := callbackInfo.Length()
+	numIn := funcType.NumIn()
+	numArgs := callbackInfo.Length()
 
-		var out []reflect.Value
+	var out []reflect.Value
 
-		in := make([]reflect.Value, numIn)
-		for i := 0; i < numIn-1; i++ {
-			jsvalue := callbackInfo.Get(i)
-			in[i] = reflect.Indirect(reflect.New(funcType.In(i)))
-			engine.SetJsValueToGo(in[i], jsvalue)
-		}
-		if funcType.IsVariadic() {
-			sliceLen := numArgs - (numIn - 1)
-			in[numIn-1] = reflect.MakeSlice(funcType.In(numIn-1), sliceLen, sliceLen)
+	in := make([]reflect.Value, numIn)
+	for i := 0; i < numIn-1; i++ {
+		jsvalue := callbackInfo.Get(i)
+		in[i] = reflect.Indirect(reflect.New(funcType.In(i)))
+		engine.SetJsValueToGo(in[i], jsvalue)
+	}
+	if funcType.IsVariadic() {
+		sliceLen := numArgs - (numIn - 1)
+		in[numIn-1] = reflect.MakeSlice(funcType.In(numIn-1), sliceLen, sliceLen)
 
-			for i := 0; i < sliceLen; i++ {
-				jsvalue := callbackInfo.Get(numIn - 1 + i)
-				engine.SetJsValueToGo(in[numIn-1].Index(i), jsvalue)
-			}
-
-			out = gofunc.CallSlice(in)
-		} else {
-			if numIn > 0 {
-				jsvalue := callbackInfo.Get(numIn - 1)
-				in[numIn-1] = reflect.Indirect(reflect.New(funcType.In(numIn - 1)))
-				engine.SetJsValueToGo(in[numIn-1], jsvalue)
-			}
-
-			out = gofunc.Call(in)
+		for i := 0; i < sliceLen; i++ {
+			jsvalue := callbackInfo.Get(numIn - 1 + i)
+			engine.SetJsValueToGo(in[numIn-1].Index(i), jsvalue)
 		}
 
-		if out == nil {
-			callbackInfo.CurrentScope().ThrowException("argument number not match")
-			return
+		out = gofunc.CallSlice(in)
+	} else {
+		if numIn > 0 {
+			jsvalue := callbackInfo.Get(numIn - 1)
+			in[numIn-1] = reflect.Indirect(reflect.New(funcType.In(numIn - 1)))
+			engine.SetJsValueToGo(in[numIn-1], jsvalue)
 		}
 
-		switch {
-		// when Go function returns only one value
-		case len(out) == 1:
-			callbackInfo.ReturnValue().Set(engine.GoValueToJsValue(out[0]))
-		// when Go function returns multi-value, put them in a JavaScript array
-		case len(out) > 1:
-			jsResults := engine.NewArray(len(out))
-			jsResultsArray := jsResults.ToArray()
+		out = gofunc.Call(in)
+	}
 
-			for i := 0; i < len(out); i++ {
-				jsResultsArray.SetElement(i, engine.GoValueToJsValue(out[i]))
-			}
+	if out == nil {
+		callbackInfo.CurrentScope().ThrowException("argument number not match")
+		return
+	}
 
-			callbackInfo.ReturnValue().Set(jsResults)
+	switch {
+	// when Go function returns only one value
+	case len(out) == 1:
+		callbackInfo.ReturnValue().Set(engine.GoValueToJsValue(out[0]))
+	// when Go function returns multi-value, put them in a JavaScript array
+	case len(out) > 1:
+		jsResults := engine.NewArray(len(out))
+		jsResultsArray := jsResults.ToArray()
+
+		for i := 0; i < len(out); i++ {
+			jsResultsArray.SetElement(i, engine.GoValueToJsValue(out[i]))
 		}
-	}, nil)
+
+		callbackInfo.ReturnValue().Set(jsResults)
+	}
 }
 
 //
@@ -117,7 +115,7 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 	if typeInfo.Kind() == reflect.Func {
 		goFunc := reflect.ValueOf(target)
 		template.SetAccessor(typeName, func(name string, info AccessorCallbackInfo) {
-			info.ReturnValue().Set(engine.GoFuncToJsFunc(goFunc))
+			info.ReturnValue().Set(engine.NewFunction(bindFuncCallback, goFunc).Value)
 		}, nil, nil, PA_None)
 		return nil
 	}
@@ -152,7 +150,7 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 				method := value.MethodByName(name)
 
 				if method.IsValid() {
-					info.ReturnValue().Set(engine.GoFuncToJsFunc(method))
+					info.ReturnValue().Set(engine.NewFunction(bindFuncCallback, method).Value)
 					return
 				}
 
@@ -223,6 +221,7 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 		return engine.NewNumber(float64(value.Uint()))
 	case reflect.Float32, reflect.Float64:
 		return engine.NewNumber(value.Float())
+	// TODO: avoid data copy
 	case reflect.Array, reflect.Slice:
 		arrayLen := value.Len()
 		jsArrayVal := engine.NewArray(value.Len())
@@ -231,6 +230,7 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 			jsArray.SetElement(i, engine.GoValueToJsValue(value.Index(i)))
 		}
 		return jsArrayVal
+	// TODO: avoid data copy
 	case reflect.Map:
 		jsObjectVal := engine.NewObject()
 		jsObject := jsObjectVal.ToObject()
@@ -245,9 +245,8 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 			}
 		}
 		return jsObjectVal
-	// TODO: Don't create many function template !!!!
 	case reflect.Func:
-		return engine.GoFuncToJsFunc(value)
+		return engine.NewFunction(bindFuncCallback, value).Value
 	case reflect.Ptr:
 		valType := value.Type()
 		if valType == typeOfValue {
@@ -280,13 +279,6 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 		}
 	}
 	return engine.Undefined()
-}
-
-func (engine *Engine) GoFuncToJsFunc(gofunc reflect.Value) *Value {
-	jsFunc := engine.bindFuncBase.NewFunction()
-	jsFuncObj := jsFunc.ToObject()
-	jsFuncObj.SetProperty("__go_bind__", engine.NewExternal(&gofunc).Value, PA_None)
-	return jsFunc
 }
 
 var (

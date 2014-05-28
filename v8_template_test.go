@@ -24,34 +24,8 @@ func Test_InternalField(t *testing.T) {
 	context.SetPrivateData(nil)
 }
 
-func Test_Function(t *testing.T) {
+func Test_FunctionTemplate(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
-		script := engine.Compile([]byte(`
-			a = function(x,y,z){
-				return x+y+z;
-			}
-		`), nil)
-
-		value := cs.Run(script)
-
-		if value.IsFunction() == false {
-			t.Fatal("value not a function")
-		}
-
-		result := value.ToFunction().Call(
-			engine.NewInteger(1),
-			engine.NewInteger(2),
-			engine.NewInteger(3),
-		)
-
-		if result.IsNumber() == false {
-			t.Fatal("result not a number")
-		}
-
-		if result.ToInteger() != 6 {
-			t.Fatal("result != 6")
-		}
-
 		function := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
 			if info.Get(0).ToString() != "Hello World!" {
 				t.Fatal(`info.Get(0).ToString() != "Hello World!"`)

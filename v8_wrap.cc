@@ -1208,9 +1208,9 @@ void V8_ReturnValue_SetUndefined(void* rv) {
 function
 */
 typedef struct {
-	V8_Context*                        engine;
+	V8_Context*                            engine;
 	const v8::FunctionCallbackInfo<Value>* info;
-	V8_ReturnValue*                    returnValue;
+	V8_ReturnValue*                        returnValue;
 } V8_FunctionCallbackInfo;
 
 void V8_FunctionCallback(const v8::FunctionCallbackInfo<Value>& info) {
@@ -1235,6 +1235,23 @@ void V8_FunctionCallback(const v8::FunctionCallbackInfo<Value>& info) {
 		delete callback_info.returnValue;
 }
 
+void* V8_NewFunction(void* engine, void* callback, void* data) {
+	ENGINE_SCOPE(engine);
+
+	Handle<Array> callback_data = Array::New(isolate, 3);
+
+	if (callback_data.IsEmpty())
+		return NULL;
+
+	callback_data->Set(0, External::New(isolate, engine));
+	callback_data->Set(1, External::New(isolate, callback));
+	callback_data->Set(2, External::New(isolate, data));
+
+	return new_V8_Value(V8_Current_Context(isolate),
+		Function::New(isolate, V8_FunctionCallback, callback_data)
+	);
+}
+
 void* V8_Function_Call(void* value, int argc, void* argv) {
 	VALUE_SCOPE(value);
 
@@ -1252,6 +1269,14 @@ void* V8_Function_Call(void* value, int argc, void* argv) {
 	delete[] real_argv;
 
 	return result;
+}
+
+void* V8_Function_NewInstance(void* value) {
+	VALUE_SCOPE(value);
+
+	return new_V8_Value(V8_Current_Context(isolate),
+		Local<Function>::Cast(local_value)->NewInstance()
+	);
 }
 
 void* V8_FunctionCallbackInfo_Get(void* info, int i) {
