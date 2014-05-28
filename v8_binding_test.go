@@ -1,5 +1,6 @@
 package v8
 
+import "reflect"
 import "testing"
 import "runtime"
 
@@ -59,6 +60,7 @@ func Test_Bind_Function(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			t.Log(i)
 			callback.Call(engine.NewString(text), obj.Value)
+			runtime.GC()
 		}
 	}
 
@@ -79,4 +81,46 @@ func Test_Bind_Function(t *testing.T) {
 			print(text, obj.Name())
 		});`)
 	})
+
+	runtime.GC()
+}
+
+type BindingTest struct {
+	First  int32
+	Second uint32
+}
+
+func Test_Bind_Integers(t *testing.T) {
+	template := engine.NewObjectTemplate()
+
+	template.Bind("BindingTest", &BindingTest{})
+
+	engine.NewContext(template).Scope(func(cs ContextScope) {
+		cs.Eval(`
+		    function getProduct(x) {
+                return x.First * x.Second
+            }
+        `)
+
+		getProduct := cs.Eval(`(function() { return getProduct } )()`)
+		if !getProduct.IsFunction() {
+			t.Fatalf("getProduct should be function pointer")
+		}
+
+		var retVal *Value
+		testObj := &BindingTest{3, 3}
+
+		if err := cs.TryCatch(func() {
+			reflectedObj := reflect.ValueOf(testObj)
+			retVal = getProduct.ToFunction().Call(engine.GoValueToJsValue(reflectedObj))
+		}); err != nil {
+			t.Fatal(err)
+		}
+
+		if retVal.ToInteger() != 9 {
+			t.Fatalf("value should be 9 not %s", ToJSON(retVal))
+		}
+	})
+
+	runtime.GC()
 }
