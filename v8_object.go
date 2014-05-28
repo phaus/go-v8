@@ -23,11 +23,20 @@ type External struct {
 }
 
 func (e *Engine) NewExternal(value interface{}) *External {
-	external := &External{
-		newValue(e, C.V8_NewExternal(e.self, unsafe.Pointer(&value))),
-		value,
+	if value == nil {
+		panic("value is nil")
 	}
+
+	external := &External{
+		data: value,
+	}
+
+	external.Value = newValue(e, C.V8_NewExternal(
+		e.self, unsafe.Pointer(&(external.data)),
+	))
+
 	external.setOwner(external)
+
 	return external
 }
 
