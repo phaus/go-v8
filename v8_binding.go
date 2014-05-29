@@ -41,6 +41,8 @@ func (bo *BindObject) Get(name string) *Value {
 }
 
 func bindFuncCallback(callbackInfo FunctionCallbackInfo) {
+	engine := callbackInfo.CurrentScope().GetEngine()
+
 	gofunc := callbackInfo.Data().(reflect.Value)
 	funcType := gofunc.Type()
 

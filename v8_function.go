@@ -20,7 +20,12 @@ type FunctionCallback func(FunctionCallbackInfo)
 //export go_function_callback
 func go_function_callback(info, callback, context, data unsafe.Pointer) {
 	callbackFunc := *(*func(FunctionCallbackInfo))(callback)
-	callbackFunc(FunctionCallbackInfo{info, ReturnValue{}, (*Context)(context), *(*interface{})(data)})
+	callbackFunc(FunctionCallbackInfo{
+		info,
+		ReturnValue{},
+		(*Context)(context),
+		*(*interface{})(data),
+	})
 }
 
 func (e *Engine) NewFunction(callback FunctionCallback, data interface{}) *Function {
