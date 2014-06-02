@@ -249,6 +249,8 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 		return jsObjectVal
 	case reflect.Func:
 		return engine.NewFunction(bindFuncCallback, value).Value
+	case reflect.Interface:
+		return engine.GoValueToJsValue(reflect.ValueOf(value.Interface()))
 	case reflect.Ptr:
 		valType := value.Type()
 		if valType == typeOfValue {
