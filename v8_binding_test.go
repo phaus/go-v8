@@ -150,3 +150,55 @@ func Test_Bind_Integers(t *testing.T) {
 
 	runtime.GC()
 }
+
+func Test_Bind_MapArgument(t *testing.T) {
+	template := engine.NewObjectTemplate()
+
+	template.Bind("Call", func(m map[string]string) string {
+		if m != nil {
+			return m["key"]
+		} else {
+			return "nil"
+		}
+	})
+
+	var errStr string
+	engine.NewContext(template).Scope(func(cs ContextScope) {
+		retVal := cs.Eval(`Call({"key":"value"})`)
+		if !retVal.IsString() || retVal.ToString() != "value" {
+			errStr = "value should be \"value\" not " + string(ToJSON(retVal))
+		}
+	})
+
+	// t.Fatal() in context scopes causes dead locks of Test_ThreadSafeX in v8_engine_test.go.
+	if errStr != "" {
+		t.Fatal(errStr)
+	}
+}
+
+func Test_Bind_InvalidMapArgument(t *testing.T) {
+	template := engine.NewObjectTemplate()
+
+	template.Bind("Call", func(m map[string]string) string {
+		if m != nil {
+			return m["key"]
+		} else {
+			return "nil"
+		}
+	})
+
+	for _, arg := range []string{"", "true", "111", `"aaa"`} {
+		var errStr string
+		engine.NewContext(template).Scope(func(cs ContextScope) {
+			retVal := cs.Eval(`Call(` + arg + `)`)
+			if !retVal.IsString() || retVal.ToString() != "nil" {
+				errStr = "value should be \"nil\" not " + string(ToJSON(retVal)) + " @" + arg
+			}
+		})
+
+		// t.Fatal() in context scopes causes dead locks of Test_ThreadSafeX in v8_engine_test.go.
+		if errStr != "" {
+			t.Fatal(errStr)
+		}
+	}
+}
