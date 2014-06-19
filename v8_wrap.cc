@@ -471,7 +471,7 @@ void* V8_Compile(void* engine, const char* code, int length, void* go_script_ori
 	HandleScope handle_scope(isolate);
 
 	ScriptOrigin script_origin(String::NewFromUtf8(isolate, ""));
-	
+
 	if (go_script_origin) {
 		char * cstr = go_script_origin_get_name(go_script_origin);
 		int line    = go_script_origin_get_line(go_script_origin);
@@ -1271,12 +1271,23 @@ void* V8_Function_Call(void* value, int argc, void* argv) {
 	return result;
 }
 
-void* V8_Function_NewInstance(void* value) {
+void* V8_Function_NewInstance(void* value, int argc, void* argv) {
 	VALUE_SCOPE(value);
 
-	return new_V8_Value(V8_Current_Context(isolate),
-		Local<Function>::Cast(local_value)->NewInstance()
+	Handle<Value>* real_argv = new Handle<Value>[argc];
+	V8_Value* *argv_ptr = (V8_Value**)argv;
+
+	for (int i = 0; i < argc; i ++) {
+		real_argv[i] = Local<Value>::New(isolate, static_cast<V8_Value*>(argv_ptr[i])->self);
+	}
+
+	void* result = new_V8_Value(V8_Current_Context(isolate),
+		Local<Function>::Cast(local_value)->NewInstance(argc, real_argv)
 	);
+
+	delete[] real_argv;
+
+	return result;
 }
 
 void* V8_FunctionCallbackInfo_Get(void* info, int i) {

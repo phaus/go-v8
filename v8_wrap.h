@@ -278,7 +278,7 @@ extern void* V8_NewFunction(void* engine, void* callback, void* data);
 
 extern void* V8_Function_Call(void* value, int argc, void* argv);
 
-extern void* V8_Function_NewInstance(void* value);
+extern void* V8_Function_NewInstance(void* value, int argc, void* argv);
 
 extern void* V8_FunctionCallbackInfo_Get(void* info, int i);
 
