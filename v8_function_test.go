@@ -53,3 +53,28 @@ func Test_Function(t *testing.T) {
 		}
 	})
 }
+
+func Test_NewInstance(t *testing.T) {
+	engine.NewContext(nil).Scope(func(cs ContextScope) {
+		script := engine.Compile([]byte(`
+			MyClass = function(x) {
+				this.x = x
+			}
+		`), nil)
+
+		value := cs.Run(script)
+		if value.IsFunction() == false {
+			t.Fatal("value not a function")
+		}
+
+		result := value.ToFunction().NewInstance(engine.NewInteger(42))
+		if result.IsObject() == false {
+			t.Fatal("result not an object")
+		}
+
+		x := result.ToObject().GetProperty("x")
+		if x.ToInteger() != 42 {
+			t.Fatal("result != 42")
+		}
+	})
+}
