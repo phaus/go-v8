@@ -25,7 +25,7 @@ Install
 
 For 'curl' user. please run this shell command:
 
-> curl -O https://raw.github.com/idada/v8.go/master/get.sh && chmod +x get.sh && ./get.sh v8.go
+> curl -OL https://raw.github.com/idada/v8.go/master/get.sh && chmod +x get.sh && ./get.sh v8.go
 
 For 'wget' user. Please run this shell command:
 
