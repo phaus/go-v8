@@ -53,8 +53,15 @@ func (f *Function) Call(args ...*Value) *Value {
 	))
 }
 
-func (f *Function) NewInstance() *Value {
-	return newValue(f.engine, C.V8_Function_NewInstance(f.self))
+func (f *Function) NewInstance(args ...*Value) *Value {
+	argv := make([]unsafe.Pointer, len(args))
+	for i, arg := range args {
+		argv[i] = arg.self
+	}
+	return newValue(f.engine, C.V8_Function_NewInstance(
+		f.self, C.int(len(args)),
+		unsafe.Pointer((*reflect.SliceHeader)(unsafe.Pointer(&argv)).Data),
+	))
 }
 
 // Function and property return value

@@ -249,6 +249,8 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 		return jsObjectVal
 	case reflect.Func:
 		return engine.NewFunction(bindFuncCallback, value).Value
+	case reflect.Interface:
+		return engine.GoValueToJsValue(reflect.ValueOf(value.Interface()))
 	case reflect.Ptr:
 		valType := value.Type()
 		if valType == typeOfValue {
@@ -318,6 +320,10 @@ func (engine *Engine) SetJsValueToGo(field reflect.Value, jsvalue *Value) {
 			engine.SetJsValueToGo(field.Index(i), jsArray.GetElement(i))
 		}
 	case reflect.Map:
+		if jsvalue.IsUndefined() || jsvalue.IsBoolean() || jsvalue.IsNumber() || jsvalue.IsString() {
+			// GetPropertyNames() causes SIGSEGV.
+			break
+		}
 		jsObject := jsvalue.ToObject()
 		jsObjectKeys := jsObject.GetPropertyNames()
 		jsObjectKeysLen := jsObjectKeys.Length()
