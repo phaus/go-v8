@@ -225,15 +225,26 @@ void* V8_NewEngine() {
 	return (void*)(new V8_Context(isolate, context));
 }
 
-void V8_DisposeEngine(void* engine) {
-	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+Isolate* DisposeEngineStep1(V8_Context* the_engine) {
 	ISOLATE_SCOPE(the_engine->GetIsolate());
-	Local<Context> local_context = Local<Context>::New(isolate, the_engine->self);
 
-	local_context->Exit();
+
+	// Error: "Cannot exit non-entered context" 
+	// See V8_NewEngine(), the context->Enter() invoked.
+	// Why ?!!!
+	// 
+	// HandleScope handle_scope(isolate);
+	// Local<Context> local_context = Local<Context>::New(isolate, the_engine->self);
+	// local_context->Exit();
 
 	delete the_engine;
 
+	return isolate;
+}
+
+void V8_DisposeEngine(void* engine) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	Isolate* isolate = DisposeEngineStep1(the_engine);
 	isolate->Dispose();
 }
 

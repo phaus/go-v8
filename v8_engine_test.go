@@ -60,6 +60,12 @@ func rand_sched(max int) {
 	}
 }
 
+// Issue #40
+//
+func Test_EngineDispose(t *testing.T) {
+	_ = NewEngine()
+}
+
 // use one engine in different threads
 //
 func Test_ThreadSafe1(t *testing.T) {
