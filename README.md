@@ -62,7 +62,6 @@ Fast Binding
 package main
 
 import "fmt"
-import "reflect"
 import "github.com/idada/v8.go"
 
 type MyType struct {
@@ -91,8 +90,8 @@ func main() {
 	})
 
 	global.Bind("test", func(obj *v8.Object) {
-		raw := obj.GetInternalField(0).(*reflect.Value)
-		raw.Interface().(*MyType).Callback(123, "dada")
+		raw := obj.GetInternalField(0).(*v8.BindObject)
+		raw.Target.Interface().(*MyType).Callback(123, "dada")
 	})
 
 	engine.NewContext(global).Scope(func(cs v8.ContextScope) {
