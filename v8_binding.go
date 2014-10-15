@@ -8,36 +8,47 @@ import (
 
 // DynamicObject used to handle dynamic property use case in JS.
 type DynamicObject struct {
-	Target     reflect.Value
-	Properties []DynamicProperty
+	Target     reflect.Value     // Target Go value.
+	SpecFields []specField       // Special fields defined by 'js-field' struct tag.
+	Properties []DynamicProperty // Dynamic properities.
 }
 
 // Dynamic object property.
 type DynamicProperty struct {
-	Name  string
-	Value *Value
+	Name  string // Property name.
+	Value *Value // JS value.
 }
 
-// Set property. If the property not exists, it will be added.
-func (bo *DynamicObject) Set(name string, jsvalue *Value) {
-	for i := 0; i < len(bo.Properties); i++ {
-		if bo.Properties[i].Name == name {
-			bo.Properties[i].Value = jsvalue
+// Get special field index.
+func (dyObj *DynamicObject) GetSpecField(name string) int {
+	for _, field := range dyObj.SpecFields {
+		if field.Name == name {
+			return field.Index
+		}
+	}
+	return -1
+}
+
+// Set dynamic property. If the property not exists, it will be added.
+func (dyObj *DynamicObject) SetDynamicProperty(name string, jsvalue *Value) {
+	for i := 0; i < len(dyObj.Properties); i++ {
+		if dyObj.Properties[i].Name == name {
+			dyObj.Properties[i].Value = jsvalue
 			return
 		}
 	}
 
-	bo.Properties = append(bo.Properties, DynamicProperty{
+	dyObj.Properties = append(dyObj.Properties, DynamicProperty{
 		Name:  name,
 		Value: jsvalue,
 	})
 }
 
-// Get property.
-func (bo *DynamicObject) Get(name string) *Value {
-	for i := 0; i < len(bo.Properties); i++ {
-		if bo.Properties[i].Name == name {
-			return bo.Properties[i].Value
+// Get dynamic property.
+func (dyObj *DynamicObject) GetDynamicProperty(name string) *Value {
+	for i := 0; i < len(dyObj.Properties); i++ {
+		if dyObj.Properties[i].Name == name {
+			return dyObj.Properties[i].Value
 		}
 	}
 
@@ -103,6 +114,18 @@ func bindFuncCallback(callbackInfo FunctionCallbackInfo) {
 	}
 }
 
+// Bind type info.
+type bindTypeInfo struct {
+	Template   *ObjectTemplate // The object template.
+	SpecFields []specField     // Special fields defined by 'js-field' struct tag.
+}
+
+// Special field info.
+type specField struct {
+	Name  string
+	Index int
+}
+
 //
 // Fast bind Go type or function to JS. Note, The function template and object template
 // created in fast bind internal are never destroyed. The JS class map to Go type use a
@@ -131,6 +154,14 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 			return errors.New("duplicate type binding")
 		}
 
+		// Take special fields
+		specFields := make([]specField, 0)
+		for i := 0; i < typeInfo.NumField(); i++ {
+			if name := typeInfo.Field(i).Tag.Get("js-field"); name != "" {
+				specFields = append(specFields, specField{name, i})
+			}
+		}
+
 		constructor := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
 			info.This().SetInternalField(0, &DynamicObject{
 				Target: reflect.New(typeInfo),
@@ -145,6 +176,15 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 			func(name string, info PropertyCallbackInfo) {
 				bindObj := info.This().GetInternalField(0).(*DynamicObject)
 				value := bindObj.Target
+
+				// Try to get field by special fields.
+				if fieldIndex := bindObj.GetSpecField(name); fieldIndex != -1 {
+					field := reflect.Indirect(value).Field(fieldIndex)
+					if field.IsValid() {
+						info.ReturnValue().Set(engine.GoValueToJsValue(field))
+						return
+					}
+				}
 
 				// Try to get field by type info
 				field := reflect.Indirect(value).FieldByName(name)
@@ -161,7 +201,7 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 				}
 
 				// Maybe this is a dynamic property
-				jsvalue := bindObj.Get(name)
+				jsvalue := bindObj.GetDynamicProperty(name)
 				if jsvalue != nil {
 					info.ReturnValue().Set(jsvalue)
 					return
@@ -174,6 +214,15 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 				bindObj := info.This().GetInternalField(0).(*DynamicObject)
 				value := bindObj.Target
 
+				// Try to set field by special fields.
+				if fieldIndex := bindObj.GetSpecField(name); fieldIndex != -1 {
+					field := value.Field(fieldIndex)
+					if field.IsValid() {
+						engine.SetJsValueToGo(field, jsvalue)
+						return
+					}
+				}
+
 				// Try to set field by type info
 				field := reflect.Indirect(value).FieldByName(name)
 				if field.IsValid() {
@@ -182,7 +231,7 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 				}
 
 				// This is a dynamic property
-				bindObj.Set(name, jsvalue)
+				bindObj.SetDynamicProperty(name, jsvalue)
 			},
 			// query
 			func(name string, info PropertyCallbackInfo) {
@@ -200,7 +249,7 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 			nil,
 			nil,
 		)
-		engine.bindTypes[typeInfo] = objTemplate
+		engine.bindTypes[typeInfo] = bindTypeInfo{objTemplate, specFields}
 
 		template.SetAccessor(typeName, func(name string, info AccessorCallbackInfo) {
 			info.ReturnValue().Set(constructor.NewFunction())
@@ -263,11 +312,12 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 		}
 		elemType := valType.Elem()
 		if elemType.Kind() == reflect.Struct {
-			if objectTemplate, exits := engine.bindTypes[elemType]; exits {
-				objectVal := engine.NewInstanceOf(objectTemplate)
+			if bindInfo, exits := engine.bindTypes[elemType]; exits {
+				objectVal := engine.NewInstanceOf(bindInfo.Template)
 				object := objectVal.ToObject()
 				object.SetInternalField(0, &DynamicObject{
-					Target: value,
+					Target:     value,
+					SpecFields: bindInfo.SpecFields,
 				})
 				return objectVal
 			}
@@ -277,11 +327,12 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 		case time.Time:
 			return engine.NewDate(value.Interface().(time.Time))
 		default:
-			if objectTemplate, exits := engine.bindTypes[value.Type()]; exits {
-				objectVal := engine.NewInstanceOf(objectTemplate)
+			if bindInfo, exits := engine.bindTypes[value.Type()]; exits {
+				objectVal := engine.NewInstanceOf(bindInfo.Template)
 				object := objectVal.ToObject()
 				object.SetInternalField(0, &DynamicObject{
-					Target: value,
+					Target:     value,
+					SpecFields: bindInfo.SpecFields,
 				})
 				return objectVal
 			}

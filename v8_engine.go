@@ -37,7 +37,7 @@ type Engine struct {
 	firstMessageListener *messageListener
 	lastMessageListener  *messageListener
 
-	bindTypes map[reflect.Type]*ObjectTemplate
+	bindTypes map[reflect.Type]bindTypeInfo
 }
 
 func NewEngine() *Engine {
@@ -52,7 +52,7 @@ func NewEngine() *Engine {
 		funcTemplates:   make(map[int64]*FunctionTemplate),
 		objectTemplates: make(map[int64]*ObjectTemplate),
 		fieldOwners:     make(map[int64]interface{}),
-		bindTypes:       make(map[reflect.Type]*ObjectTemplate),
+		bindTypes:       make(map[reflect.Type]bindTypeInfo),
 	}
 
 	runtime.SetFinalizer(engine, func(e *Engine) {
