@@ -51,8 +51,18 @@ func (dyObj *DynamicObject) GetDynamicProperty(name string) *Value {
 			return dyObj.Properties[i].Value
 		}
 	}
-
 	return nil
+}
+
+// Delete dynamic property.
+func (dyObj *DynamicObject) DelDynamicProperty(name string) {
+	for i := 0; i < len(dyObj.Properties); i++ {
+		if dyObj.Properties[i].Name == name {
+			dyObj.Properties[i].Name = ""
+			dyObj.Properties[i].Value = nil
+			return
+		}
+	}
 }
 
 func bindFuncCallback(callbackInfo FunctionCallbackInfo) {
@@ -72,6 +82,7 @@ func bindFuncCallback(callbackInfo FunctionCallbackInfo) {
 		in[i] = reflect.Indirect(reflect.New(funcType.In(i)))
 		engine.SetJsValueToGo(in[i], jsvalue)
 	}
+
 	if funcType.IsVariadic() {
 		sliceLen := numArgs - (numIn - 1)
 		in[numIn-1] = reflect.MakeSlice(funcType.In(numIn-1), sliceLen, sliceLen)
@@ -179,23 +190,20 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 
 				// Try to get field by special fields.
 				if fieldIndex := bindObj.GetSpecField(name); fieldIndex != -1 {
-					field := reflect.Indirect(value).Field(fieldIndex)
-					if field.IsValid() {
+					if field := reflect.Indirect(value).Field(fieldIndex); field.IsValid() {
 						info.ReturnValue().Set(engine.GoValueToJsValue(field))
 						return
 					}
 				}
 
 				// Try to get field by type info
-				field := reflect.Indirect(value).FieldByName(name)
-				if field.IsValid() {
+				if field := reflect.Indirect(value).FieldByName(name); field.IsValid() {
 					info.ReturnValue().Set(engine.GoValueToJsValue(field))
 					return
 				}
 
 				// Try to call method by type info
-				method := value.MethodByName(name)
-				if method.IsValid() {
+				if method := value.MethodByName(name); method.IsValid() {
 					info.ReturnValue().Set(engine.NewFunction(bindFuncCallback, method).Value)
 					return
 				}
@@ -216,16 +224,14 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 
 				// Try to set field by special fields.
 				if fieldIndex := bindObj.GetSpecField(name); fieldIndex != -1 {
-					field := value.Field(fieldIndex)
-					if field.IsValid() {
+					if field := reflect.Indirect(value).Field(fieldIndex); field.IsValid() {
 						engine.SetJsValueToGo(field, jsvalue)
 						return
 					}
 				}
 
 				// Try to set field by type info
-				field := reflect.Indirect(value).FieldByName(name)
-				if field.IsValid() {
+				if field := reflect.Indirect(value).FieldByName(name); field.IsValid() {
 					engine.SetJsValueToGo(field, jsvalue)
 					return
 				}
@@ -238,15 +244,25 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 				bindObj := info.This().ToObject().GetInternalField(0).(*DynamicObject)
 				value := bindObj.Target
 
+				// Is it a field or a method?
 				if reflect.Indirect(value).FieldByName(name).IsValid() || value.MethodByName(name).IsValid() {
 					info.ReturnValue().SetBoolean(true)
 					return
 				}
+
+				// Is it dynamic property?
+				info.ReturnValue().SetBoolean(bindObj.GetDynamicProperty(name) != nil)
 			},
 			// delete
-			nil,
+			func(name string, info PropertyCallbackInfo) {
+				bindObj := info.This().ToObject().GetInternalField(0).(*DynamicObject)
+
+				// only dynamic can deleted
+				bindObj.DelDynamicProperty(name)
+			},
 			// enum
 			nil,
+			// data
 			nil,
 		)
 		engine.bindTypes[typeInfo] = bindTypeInfo{objTemplate, specFields}
