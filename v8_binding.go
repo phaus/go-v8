@@ -6,17 +6,20 @@ import (
 	"time"
 )
 
-type BindObject struct {
+// DynamicObject used to handle dynamic property use case in JS.
+type DynamicObject struct {
 	Target     reflect.Value
-	Properties []BindObjectProperty
+	Properties []DynamicProperty
 }
 
-type BindObjectProperty struct {
+// Dynamic object property.
+type DynamicProperty struct {
 	Name  string
 	Value *Value
 }
 
-func (bo *BindObject) Set(name string, jsvalue *Value) {
+// Set property. If the property not exists, it will be added.
+func (bo *DynamicObject) Set(name string, jsvalue *Value) {
 	for i := 0; i < len(bo.Properties); i++ {
 		if bo.Properties[i].Name == name {
 			bo.Properties[i].Value = jsvalue
@@ -24,13 +27,14 @@ func (bo *BindObject) Set(name string, jsvalue *Value) {
 		}
 	}
 
-	bo.Properties = append(bo.Properties, BindObjectProperty{
+	bo.Properties = append(bo.Properties, DynamicProperty{
 		Name:  name,
 		Value: jsvalue,
 	})
 }
 
-func (bo *BindObject) Get(name string) *Value {
+// Get property.
+func (bo *DynamicObject) Get(name string) *Value {
 	for i := 0; i < len(bo.Properties); i++ {
 		if bo.Properties[i].Name == name {
 			return bo.Properties[i].Value
@@ -128,7 +132,7 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 		}
 
 		constructor := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
-			info.This().SetInternalField(0, &BindObject{
+			info.This().SetInternalField(0, &DynamicObject{
 				Target: reflect.New(typeInfo),
 			})
 		}, nil)
@@ -139,25 +143,25 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 		objTemplate.SetNamedPropertyHandler(
 			// get
 			func(name string, info PropertyCallbackInfo) {
-				bindObj := info.This().GetInternalField(0).(*BindObject)
+				bindObj := info.This().GetInternalField(0).(*DynamicObject)
 				value := bindObj.Target
 
+				// Try to get field by type info
 				field := reflect.Indirect(value).FieldByName(name)
-
 				if field.IsValid() {
 					info.ReturnValue().Set(engine.GoValueToJsValue(field))
 					return
 				}
 
+				// Try to call method by type info
 				method := value.MethodByName(name)
-
 				if method.IsValid() {
 					info.ReturnValue().Set(engine.NewFunction(bindFuncCallback, method).Value)
 					return
 				}
 
+				// Maybe this is a dynamic property
 				jsvalue := bindObj.Get(name)
-
 				if jsvalue != nil {
 					info.ReturnValue().Set(jsvalue)
 					return
@@ -167,21 +171,22 @@ func (template *ObjectTemplate) Bind(typeName string, target interface{}) error 
 			},
 			// set
 			func(name string, jsvalue *Value, info PropertyCallbackInfo) {
-				bindObj := info.This().GetInternalField(0).(*BindObject)
+				bindObj := info.This().GetInternalField(0).(*DynamicObject)
 				value := bindObj.Target
 
+				// Try to set field by type info
 				field := reflect.Indirect(value).FieldByName(name)
-
 				if field.IsValid() {
 					engine.SetJsValueToGo(field, jsvalue)
 					return
 				}
 
+				// This is a dynamic property
 				bindObj.Set(name, jsvalue)
 			},
 			// query
 			func(name string, info PropertyCallbackInfo) {
-				bindObj := info.This().ToObject().GetInternalField(0).(*BindObject)
+				bindObj := info.This().ToObject().GetInternalField(0).(*DynamicObject)
 				value := bindObj.Target
 
 				if reflect.Indirect(value).FieldByName(name).IsValid() || value.MethodByName(name).IsValid() {
@@ -261,7 +266,7 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 			if objectTemplate, exits := engine.bindTypes[elemType]; exits {
 				objectVal := engine.NewInstanceOf(objectTemplate)
 				object := objectVal.ToObject()
-				object.SetInternalField(0, &BindObject{
+				object.SetInternalField(0, &DynamicObject{
 					Target: value,
 				})
 				return objectVal
@@ -275,7 +280,7 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 			if objectTemplate, exits := engine.bindTypes[value.Type()]; exits {
 				objectVal := engine.NewInstanceOf(objectTemplate)
 				object := objectVal.ToObject()
-				object.SetInternalField(0, &BindObject{
+				object.SetInternalField(0, &DynamicObject{
 					Target: value,
 				})
 				return objectVal
