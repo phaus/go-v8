@@ -9,8 +9,8 @@ func Test_ReturnValue(t *testing.T) {
 	template.Bind("Call", func() *Value {
 		val := engine.NewObject()
 		obj := val.ToObject()
-		obj.SetProperty("name", engine.NewString("test object"), PA_None)
-		obj.SetProperty("id", engine.NewInteger(1234), PA_None)
+		obj.SetProperty("name", engine.NewString("test object"))
+		obj.SetProperty("id", engine.NewInteger(1234))
 		return val
 	})
 

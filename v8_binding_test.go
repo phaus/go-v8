@@ -10,14 +10,14 @@ func Test_Bind_Variadic(t *testing.T) {
 	template.Bind("Call", func(arg1, arg2 string, args ...string) *Value {
 		val := engine.NewObject()
 		obj := val.ToObject()
-		obj.SetProperty("a1", engine.NewString(arg1), PA_None)
-		obj.SetProperty("a2", engine.NewString(arg2), PA_None)
+		obj.SetProperty("a1", engine.NewString(arg1))
+		obj.SetProperty("a2", engine.NewString(arg2))
 		array := engine.NewArray(len(args))
 		arrayObj := array.ToObject()
 		for i, arg := range args {
 			arrayObj.SetElement(i, engine.NewString(arg))
 		}
-		obj.SetProperty("as", array, PA_None)
+		obj.SetProperty("as", array)
 		return val
 	})
 

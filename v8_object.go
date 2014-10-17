@@ -61,10 +61,10 @@ func (e *Engine) NewObject() *Value {
 	return newValue(e, C.V8_NewObject(e.self))
 }
 
-func (o *Object) SetProperty(key string, value *Value, attribs PropertyAttribute) bool {
+func (o *Object) SetProperty(key string, value *Value) bool {
 	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&key)).Data)
 	return C.V8_Object_SetProperty(
-		o.self, (*C.char)(keyPtr), C.int(len(key)), value.self, C.int(attribs),
+		o.self, (*C.char)(keyPtr), C.int(len(key)), value.self,
 	) == 1
 }
 

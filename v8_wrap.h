@@ -60,6 +60,8 @@ extern void V8_DisposeEngine(void* engine);
 
 extern void* V8_ParseJSON(void* context, const char* json, int json_length);
 
+extern void V8_ForceGC(void* engine);
+
 /*
 context
 */
@@ -172,7 +174,7 @@ object
 */
 extern void* V8_NewObject(void* engine);
 
-extern int V8_Object_SetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs);
+extern int V8_Object_SetProperty(void* value, const char* key, int key_length, void* prop_value);
 
 extern void* V8_Object_GetProperty(void* value, const char* key, int key_length);
 
@@ -346,8 +348,6 @@ extern void* V8_FunctionTemplate_InstanceTemplate(void* tpl);
 V8
 */
 extern const char* V8_GetVersion();
-
-extern void V8_ForceGC();
 
 extern void V8_SetFlagsFromString(const char* str, int length);
 

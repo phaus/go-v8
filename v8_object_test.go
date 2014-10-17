@@ -18,7 +18,7 @@ func Test_Object(t *testing.T) {
 			t.Fatal("could't get property 'a'")
 		}
 
-		if !object.SetProperty("b", engine.True(), PA_None) {
+		if !object.SetProperty("b", engine.True()) {
 			t.Fatal("could't set property 'b'")
 		}
 
@@ -31,7 +31,7 @@ func Test_Object(t *testing.T) {
 		}
 
 		// Test get/set non-ascii property
-		if !object.SetProperty("中文字段", engine.False(), PA_None) {
+		if !object.SetProperty("中文字段", engine.False()) {
 			t.Fatal("could't set non-ascii property")
 		}
 
@@ -64,19 +64,8 @@ func Test_Object(t *testing.T) {
 			t.Fatal("could't get element 0")
 		}
 
-		// Test GetPropertyAttributes
-		if !object.SetProperty("x", engine.True(), PA_DontDelete|PA_ReadOnly) {
-			t.Fatal("could't set property with attributes")
-		}
-
-		attris := object.GetPropertyAttributes("x")
-
-		if attris&(PA_DontDelete|PA_ReadOnly) != PA_DontDelete|PA_ReadOnly {
-			t.Fatal("property attributes not match")
-		}
-
 		// Test ForceSetProperty
-		if !object.ForceSetProperty("x", engine.False(), PA_None) {
+		if !object.ForceSetProperty("x", engine.False(), PA_DontDelete|PA_ReadOnly) {
 			t.Fatal("could't force set property 'x'")
 		}
 
@@ -86,6 +75,13 @@ func Test_Object(t *testing.T) {
 			}
 		} else {
 			t.Fatal("could't get property 'x'")
+		}
+
+		// Test GetPropertyAttributes
+		attris := object.GetPropertyAttributes("x")
+
+		if attris&(PA_DontDelete|PA_ReadOnly) != PA_DontDelete|PA_ReadOnly {
+			t.Fatal("property attributes not match")
 		}
 
 		// Test HasProperty and DeleteProperty

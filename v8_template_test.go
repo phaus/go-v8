@@ -71,7 +71,7 @@ func Test_Accessor(t *testing.T) {
 			t.Fatal(`object.GetProperty("abc").ToInt32() != 1234`)
 		}
 
-		object.SetProperty("abc", engine.NewInteger(5678), PA_None)
+		object.SetProperty("abc", engine.NewInteger(5678))
 
 		if propertyValue != 5678 {
 			t.Fatal(`propertyValue != 5678`)
@@ -116,7 +116,7 @@ func Test_Accessor(t *testing.T) {
 				t.Fatal(`object.GetProperty("abc").ToInt32() != 1234`)
 			}
 
-			object.SetProperty("abc", engine.NewInteger(5678), PA_None)
+			object.SetProperty("abc", engine.NewInteger(5678))
 
 			if propertyValue != 5678 {
 				t.Fatal(`propertyValue != 5678`)
@@ -184,7 +184,7 @@ func Test_NamedPropertyHandler(t *testing.T) {
 		object := engine.NewInstanceOf(obj_template).ToObject()
 
 		object.GetProperty("abc")
-		object.SetProperty("abc", engine.NewInteger(123), PA_None)
+		object.SetProperty("abc", engine.NewInteger(123))
 		object.GetPropertyAttributes("abc")
 
 		cs.Eval(`
@@ -323,7 +323,7 @@ func Test_ObjectConstructor(t *testing.T) {
 	obj_template.SetInternalFieldCount(1)
 
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
-		cs.Global().SetProperty("MyClass", ftConstructor.NewFunction(), PA_None)
+		cs.Global().SetProperty("MyClass", ftConstructor.NewFunction())
 
 		if !cs.Eval("(new MyClass) instanceof MyClass").IsTrue() {
 			t.Fatal("(new MyClass) instanceof MyClass == false")

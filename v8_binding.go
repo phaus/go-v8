@@ -309,7 +309,7 @@ func (engine *Engine) GoValueToJsValue(value reflect.Value) *Value {
 		for _, key := range value.MapKeys() {
 			switch key.Kind() {
 			case reflect.String:
-				jsObject.SetProperty(key.String(), engine.GoValueToJsValue(value.MapIndex(key)), PA_None)
+				jsObject.SetProperty(key.String(), engine.GoValueToJsValue(value.MapIndex(key)))
 			case reflect.Int8, reflect.Int16, reflect.Int32,
 				reflect.Uint8, reflect.Uint16, reflect.Uint32,
 				reflect.Int, reflect.Uint, reflect.Int64, reflect.Uint64:

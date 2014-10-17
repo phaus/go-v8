@@ -137,3 +137,8 @@ func go_message_callback(engine, message unsafe.Pointer) {
 		i.Callback((*Message)(message))
 	}
 }
+
+// Force GC.
+func (engine *Engine) ForceGC() {
+	C.V8_ForceGC(engine.self)
+}

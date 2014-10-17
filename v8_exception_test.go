@@ -67,8 +67,8 @@ func Test_ThrowException2(t *testing.T) {
 	template.Bind("Call", func() {
 		val := engine.NewObject()
 		obj := val.ToObject()
-		obj.SetProperty("name", engine.NewString("test object"), PA_None)
-		obj.SetProperty("id", engine.NewInteger(1234), PA_None)
+		obj.SetProperty("name", engine.NewString("test object"))
+		obj.SetProperty("id", engine.NewInteger(1234))
 		engine.NewContext(nil).Scope(func(cs ContextScope) {
 			cs.ThrowException2(val)
 		})

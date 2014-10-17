@@ -263,6 +263,14 @@ void* V8_ParseJSON(void* context, const char* json, int json_length) {
 	return new_V8_Value(the_context, value);
 }
 
+void V8_ForceGC(void* engine) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+
+	while(!isolate->IdleNotification(100)) {};
+}
+
+
 /*
 context
 */
@@ -750,13 +758,12 @@ void V8_Object_SetInternalField(void* value, int index, void* data) {
 	obj->SetInternalField(index, External::New(isolate, data));
 }
 
-int V8_Object_SetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {
+int V8_Object_SetProperty(void* value, const char* key, int key_length, void* prop_value) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Set(
 		String::NewFromUtf8(isolate, key, String::kInternalizedString, key_length),
-		Local<Value>::New(isolate, static_cast<V8_Value*>(prop_value)->self),
-		(PropertyAttribute)attribs
+		Local<Value>::New(isolate, static_cast<V8_Value*>(prop_value)->self)
 	);
 }
 
@@ -1375,8 +1382,7 @@ void V8_ObjectTemplate_SetProperty(void* tpl, const char* key, int key_length, v
 
 	local_template->Set(
 		String::NewFromUtf8(isolate, key, String::kInternalizedString, key_length),
-		Local<Value>::New(isolate, static_cast<V8_Value*>(prop_value)->self),
-		(PropertyAttribute)attribs
+		Local<Value>::New(isolate, static_cast<V8_Value*>(prop_value)->self)
 	);
 }
 
@@ -1651,10 +1657,6 @@ V8
 */
 const char* V8_GetVersion() {
 	return V8::GetVersion();
-}
-
-void V8_ForceGC() {
-	while(!V8::IdleNotification()) {};
 }
 
 void V8_SetFlagsFromString(const char* str, int length) {

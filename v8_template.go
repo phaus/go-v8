@@ -148,7 +148,7 @@ func (ot *ObjectTemplate) WrapObject(value *Value) {
 	}
 
 	for _, info := range ot.properties {
-		object.SetProperty(info.key, info.value, info.attribs)
+		object.SetProperty(info.key, info.value)
 	}
 }
 

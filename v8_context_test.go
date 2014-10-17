@@ -66,7 +66,7 @@ func Test_Context(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		global := cs.Global()
 
-		if !global.SetProperty("println", functionTemplate.NewFunction(), PA_None) {
+		if !global.SetProperty("println", functionTemplate.NewFunction()) {
 		}
 
 		global = cs.Global()

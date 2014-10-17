@@ -461,7 +461,7 @@ func Benchmark_Setter(b *testing.B) {
 		b.StartTimer()
 
 		for i := 0; i < b.N; i++ {
-			object.SetProperty("abc", engine.NewInteger(5678), PA_None)
+			object.SetProperty("abc", engine.NewInteger(5678))
 		}
 	})
 

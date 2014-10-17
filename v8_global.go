@@ -22,10 +22,6 @@ func GetVersion() string {
 	return C.GoString(C.V8_GetVersion())
 }
 
-func ForceGC() {
-	C.V8_ForceGC()
-}
-
 func SetFlagsFromString(cmd string) {
 	cs := C.CString(cmd)
 	defer C.free(unsafe.Pointer(cs))
