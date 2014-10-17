@@ -2,13 +2,14 @@
 
 # build v8 native version
 cd v8
+svn co http://gyp.googlecode.com/svn/trunk build/gyp --revision 1831
 make i18nsupport=off native
 cd ..
 
 outdir="`pwd`/v8/out/native"
 
 libv8_base="`find $outdir -name 'libv8_base.*.a' | head -1`"
-if [ libv8_base == '' ]; then
+if [ ! -f $libv8_base ]; then
 	echo >&2 "V8 build failed?"
 	exit
 fi
@@ -34,4 +35,4 @@ Libs: $libstdcpp $libv8_base $outdir/libv8_snapshot.a $librt" > v8.pc
 
 # let's go
 go install
-go test -bench="."
+go test -v
