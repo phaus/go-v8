@@ -212,6 +212,8 @@ void* new_V8_Value(V8_Context* context, Handle<Value> value) {
 engine
 */
 void* V8_NewEngine() {
+	//V8::InitializeICU();
+
 	ISOLATE_SCOPE(Isolate::New());
 
 	HandleScope handle_scope(isolate);
@@ -252,7 +254,7 @@ void* V8_ParseJSON(void* context, const char* json, int json_length) {
 	CONTEXT_SCOPE(context);
 
 	Handle<Value> value = JSON::Parse(
-		String::NewFromOneByte(isolate, (uint8_t*)json, String::kNormalString, json_length)
+		String::NewFromUtf8(isolate, json, String::kInternalizedString, json_length)
 	);
 
 	if (value.IsEmpty())
@@ -352,7 +354,7 @@ void V8_Context_ThrowException(void* context, const char* err, int err_length) {
 	ISOLATE_SCOPE(ctx->GetIsolate());
 
 	isolate->ThrowException(
-		String::NewFromOneByte(isolate, (uint8_t*)err, String::kNormalString, err_length)
+		String::NewFromUtf8(isolate, err, String::kInternalizedString, err_length)
 	);
 }
 
@@ -498,7 +500,7 @@ void* V8_Compile(void* engine, const char* code, int length, void* go_script_ori
 	}
 
 	ScriptCompiler::Source source(
-		String::NewFromOneByte(isolate, (uint8_t*)code, String::kNormalString, length),
+		String::NewFromUtf8(isolate, code, String::kInternalizedString, length),
 		script_origin
 	);
 
@@ -654,10 +656,10 @@ char* V8_Value_ToString(void* value) {
 	VALUE_SCOPE(value);
 
 	Handle<String> string = local_value->ToString();
-	uint8_t* str = (uint8_t*)malloc(string->Length() + 1);
-	string->WriteOneByte(str);
+	char* str = (char*)malloc(string->Length() + 1);
+	string->WriteUtf8(str);
 
-	return (char*)str;
+	return str;
 }
 
 void* V8_Undefined(void* engine) {
@@ -700,7 +702,7 @@ void* V8_NewString(void* engine, const char* val, int val_length) {
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
 	ISOLATE_SCOPE(the_engine->GetIsolate());
 	return new_V8_Value(the_engine,
-		String::NewFromOneByte(isolate, (uint8_t*)val, String::kNormalString, val_length)
+		String::NewFromUtf8(isolate, val, String::kInternalizedString, val_length)
 	);
 }
 
@@ -752,7 +754,7 @@ int V8_Object_SetProperty(void* value, const char* key, int key_length, void* pr
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Set(
-		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
+		String::NewFromUtf8(isolate, key, String::kInternalizedString, key_length),
 		Local<Value>::New(isolate, static_cast<V8_Value*>(prop_value)->self),
 		(PropertyAttribute)attribs
 	);
@@ -763,7 +765,7 @@ void* V8_Object_GetProperty(void* value, const char* key, int key_length) {
 
 	return new_V8_Value(V8_Current_Context(isolate),
 		Local<Object>::Cast(local_value)->Get(
-			String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length)
+			String::NewFromUtf8(isolate, key, String::kInternalizedString, key_length)
 		)
 	);
 }
@@ -789,7 +791,7 @@ int V8_Object_GetPropertyAttributes(void* value, const char* key, int key_length
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->GetPropertyAttributes(
-		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length)
+		String::NewFromUtf8(isolate, key, String::kInternalizedString, key_length)
 	);
 }
 
@@ -797,7 +799,7 @@ int V8_Object_ForceSetProperty(void* value, const char* key, int key_length, voi
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->ForceSet(
-		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
+		String::NewFromUtf8(isolate, key, String::kInternalizedString, key_length),
 		Local<Value>::New(isolate, static_cast<V8_Value*>(prop_value)->self),
 		(PropertyAttribute)attribs
 	);
@@ -807,7 +809,7 @@ int V8_Object_HasProperty(void* value, const char* key, int key_length) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Has(
-		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length)
+		String::NewFromUtf8(isolate, key, String::kInternalizedString, key_length)
 	);
 }
 
@@ -815,7 +817,7 @@ int V8_Object_DeleteProperty(void* value, const char* key, int key_length) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Delete(
-		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length)
+		String::NewFromUtf8(isolate, key, String::kInternalizedString, key_length)
 	);
 }
 
@@ -823,7 +825,7 @@ int V8_Object_ForceDeleteProperty(void* value, const char* key, int key_length) 
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->ForceDelete(
-		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length)
+		String::NewFromUtf8(isolate, key, String::kInternalizedString, key_length)
 	);
 }
 
@@ -940,7 +942,7 @@ void V8_Object_SetAccessor(void *value, const char* key, int key_length, void* g
 		return;
 
 	Local<Object>::Cast(local_value)->SetAccessor(
-		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
+		String::NewFromUtf8(isolate, key, String::kInternalizedString, key_length),
 		V8_AccessorGetterCallback, setter == NULL ? NULL : V8_AccessorSetterCallback,
  		callback_info
 	);
@@ -1094,7 +1096,7 @@ void* V8_NewRegExp(void* engine, const char* pattern, int length, int flags) {
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
 	ISOLATE_SCOPE(the_engine->GetIsolate());
 	return new_V8_Value(the_engine, RegExp::New(
-		String::NewFromOneByte(isolate, (uint8_t*)pattern, String::kNormalString, length),
+		String::NewFromUtf8(isolate, pattern, String::kInternalizedString, length),
 		(RegExp::Flags)flags
 	));
 }
@@ -1104,10 +1106,10 @@ char* V8_RegExp_Pattern(void* value) {
 
 	Local<String> pattern = Local<RegExp>::Cast(local_value)->GetSource();
 
-	uint8_t* str = (uint8_t*)malloc(pattern->Length() + 1);
-	pattern->WriteOneByte(str);
+	char* str = (char*)malloc(pattern->Length() + 1);
+	pattern->WriteUtf8(str);
 
-	return (char*)str;
+	return str;
 }
 
 int V8_RegExp_Flags(void* value) {
@@ -1122,7 +1124,7 @@ void* V8_Exception_RangeError(void* engine, const char* val, int val_length) {
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
 	ISOLATE_SCOPE(the_engine->GetIsolate());
 	return new_V8_Value(the_engine,	Exception::RangeError(
-		String::NewFromOneByte(isolate, (uint8_t*)val, String::kNormalString, val_length)
+		String::NewFromUtf8(isolate, val, String::kInternalizedString, val_length)
 	));
 }
 
@@ -1130,7 +1132,7 @@ void* V8_Exception_ReferenceError(void* engine, const char* val, int val_length)
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
 	ISOLATE_SCOPE(the_engine->GetIsolate());
 	return new_V8_Value(the_engine,	Exception::ReferenceError(
-		String::NewFromOneByte(isolate, (uint8_t*)val, String::kNormalString, val_length)
+		String::NewFromUtf8(isolate, val, String::kInternalizedString, val_length)
 	));
 }
 
@@ -1138,7 +1140,7 @@ void* V8_Exception_SyntaxError(void* engine, const char* val, int val_length) {
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
 	ISOLATE_SCOPE(the_engine->GetIsolate());
 	return new_V8_Value(the_engine,	Exception::SyntaxError(
-		String::NewFromOneByte(isolate, (uint8_t*)val, String::kNormalString, val_length)
+		String::NewFromUtf8(isolate, val, String::kInternalizedString, val_length)
 	));
 }
 
@@ -1146,7 +1148,7 @@ void* V8_Exception_TypeError(void* engine, const char* val, int val_length) {
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
 	ISOLATE_SCOPE(the_engine->GetIsolate());
 	return new_V8_Value(the_engine,	Exception::TypeError(
-		String::NewFromOneByte(isolate, (uint8_t*)val, String::kNormalString, val_length)
+		String::NewFromUtf8(isolate, val, String::kInternalizedString, val_length)
 	));
 }
 
@@ -1154,7 +1156,7 @@ void* V8_Exception_Error(void* engine, const char* val, int val_length) {
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
 	ISOLATE_SCOPE(the_engine->GetIsolate());
 	return new_V8_Value(the_engine,	Exception::Error(
-		String::NewFromOneByte(isolate, (uint8_t*)val, String::kNormalString, val_length)
+		String::NewFromUtf8(isolate, val, String::kInternalizedString, val_length)
 	));
 }
 
@@ -1198,7 +1200,7 @@ void V8_ReturnValue_SetString(void* rv, const char* str, int str_length) {
 		the_rv->value.SetEmptyString();
 	} else {
 		the_rv->value.Set(
-			String::NewFromOneByte(isolate, (uint8_t*)str, String::kNormalString, str_length)
+			String::NewFromUtf8(isolate, str, String::kInternalizedString, str_length)
 		);
 	}
 }
@@ -1372,7 +1374,7 @@ void V8_ObjectTemplate_SetProperty(void* tpl, const char* key, int key_length, v
 	OBJECT_TEMPLATE_SCOPE(tpl);
 
 	local_template->Set(
-		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
+		String::NewFromUtf8(isolate, key, String::kInternalizedString, key_length),
 		Local<Value>::New(isolate, static_cast<V8_Value*>(prop_value)->self),
 		(PropertyAttribute)attribs
 	);
@@ -1400,7 +1402,7 @@ void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, v
 		return;
 
 	local_template->SetAccessor(
-		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
+		String::NewFromUtf8(isolate, key, String::kInternalizedString, key_length),
 		V8_AccessorGetterCallback, setter == NULL ? NULL : V8_AccessorSetterCallback,
  		callback_info
 	);
@@ -1425,9 +1427,9 @@ void V8_NamedPropertyGetterCallbackBase(
     callback_info.key = NULL;
 
 	if (typ != OTP_Enumerator) {
-		uint8_t* key = (uint8_t*)malloc(property->Length() + 1);
-		property->WriteOneByte(key);
-		callback_info.key = (char*)key;
+		char* key = (char*)malloc(property->Length() + 1);
+		property->WriteUtf8(key);
+		callback_info.key = key;
 	}
 
 	if (typ == OTP_Setter) {
@@ -1635,7 +1637,7 @@ void* V8_FunctionTemplate_GetFunction(void* tpl) {
 void V8_FunctionTemplate_SetClassName(void* tpl, const char* name, int name_length) {
 	FUNCTION_TEMPLATE_HANDLE_SCOPE(tpl);
 	return local_template->SetClassName(
-		String::NewFromOneByte(isolate, (uint8_t*)name, String::kNormalString, name_length)
+		String::NewFromUtf8(isolate, name, String::kInternalizedString, name_length)
 	);
 }
 
