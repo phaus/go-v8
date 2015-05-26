@@ -12,7 +12,7 @@ mkdir $install_dir
 cd $install_dir
 export GOPATH=`pwd`
 
-mkdir -p bin pkg src/github.com/idada/v8.go
+mkdir -p bin pkg src/github.com/eliquious/v8.go
 cd src/github.com/eliquious/v8.go
 
 git init
