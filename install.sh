@@ -4,7 +4,7 @@ version="3.28"
 
 # build v8 native version
 cd "v8-$version"
-make i18nsupport=off native
+make i18nsupport=off werror=no native
 cd ..
 
 outdir="`pwd`/v8-$version/out/native"
