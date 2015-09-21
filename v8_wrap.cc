@@ -231,10 +231,10 @@ Isolate* DisposeEngineStep1(V8_Context* the_engine) {
 	ISOLATE_SCOPE(the_engine->GetIsolate());
 
 
-	// Error: "Cannot exit non-entered context" 
+	// Error: "Cannot exit non-entered context"
 	// See V8_NewEngine(), the context->Enter() invoked.
 	// Why ?!!!
-	// 
+	//
 	// HandleScope handle_scope(isolate);
 	// Local<Context> local_context = Local<Context>::New(isolate, the_engine->self);
 	// local_context->Exit();
@@ -496,7 +496,7 @@ void* V8_Compile(void* engine, const char* code, int length, void* go_script_ori
 	if (go_script_origin) {
 		char * cstr = go_script_origin_get_name(go_script_origin);
 		int line    = go_script_origin_get_line(go_script_origin);
-		int column  = go_script_origin_get_line(go_script_origin);
+		int column  = go_script_origin_get_column(go_script_origin);
 
 		script_origin = ScriptOrigin(
 			String::NewFromUtf8(isolate, cstr),
