@@ -85,6 +85,26 @@ extern void* V8_Context_TryCatch(void* context, void* callback);
 
 extern void* V8_Context_TryCatchException(void* context, void* callback);
 
+extern void V8_Context_SetSecurityToken(void* context, void* value);
+
+extern void* V8_Context_GetSecurityToken(void* context);
+
+extern void V8_Context_UseDefaultSecurityToken(void* context);
+
+extern void* V8_Context_GetEmbedderData(void* context, int index);
+
+extern void V8_Context_SetEmbedderData(void* context, int index, void* value);
+/*
+Escapable Scope
+*/
+extern void V8_Escapable_Scope(void* context, void* context_ptr, void* callback);
+
+extern void* V8_Escapable_Escape(void* escapeContext);
+/*
+Isolate
+*/
+extern unsigned int V8_Isolate_GetNumberOfDataSlots();
+
 /*
 script
 */
@@ -211,6 +231,12 @@ extern int V8_Object_InternalFieldCount(void* value);
 extern void* V8_Object_GetInternalField(void* value, int index);
 
 extern void V8_Object_SetInternalField(void* value, int index, void* data);
+
+extern int V8_Object_SetHiddenValue(void* value, const char* key ,void* data);
+
+extern int V8_Object_DeleteHiddenValue(void* value, const char* key);
+
+extern void* V8_Object_GetConstructorName(void* value);
 
 extern void* V8_AccessorCallbackInfo_This(void *info, AccessorDataEnum type);
 
@@ -343,6 +369,8 @@ extern void* V8_FunctionTemplate_GetFunction(void* tpl);
 extern void V8_FunctionTemplate_SetClassName(void* tpl, const char* name, int name_length);
 
 extern void* V8_FunctionTemplate_InstanceTemplate(void* tpl);
+
+extern void V8_FunctionTemplate_SetHiddenPrototype(void* tpl, int value);
 
 /*
 V8

@@ -25,6 +25,10 @@ using namespace v8;
 	V8_Context* the_context = static_cast<V8_Context*>(engine); \
 	ISOLATE_SCOPE(the_context->GetIsolate()) \
 
+#define ESCAPABLE_HANDLE_SCOPE(isolate_ptr) \
+	ISOLATE_SCOPE(isolate_ptr); \
+	EscapableHandleScope escapable_scope(isolate) \
+
 #define VALUE_SCOPE(value) \
 	V8_Value* the_value = static_cast<V8_Value*>(value); \
 	ISOLATE_SCOPE(the_value->GetIsolate()); \
@@ -53,6 +57,7 @@ using namespace v8;
 	Local<FunctionTemplate> local_template = Local<FunctionTemplate>::New(isolate, the_template->self) \
 
 #define PREV_CONTEXT_SLOT 1
+#define PREV_ESCAPABLE_SLOT 2
 
 class V8_Context {
 public:
@@ -325,6 +330,30 @@ void V8_Context_Scope(void* context, void* context_ptr, void* callback) {
 	isolate->SetData(PREV_CONTEXT_SLOT, prev_context);
 }
 
+void V8_Escapable_Scope(void* context, void* context_ptr, void* callback){
+		V8_Context* ctx = static_cast<V8_Context*>(context);
+		ESCAPABLE_HANDLE_SCOPE(ctx->GetIsolate());
+		void* prev_context = isolate->GetData(PREV_ESCAPABLE_SLOT);
+		scope_data data;
+		data.context = context;
+		data.context_ptr = context_ptr;
+
+		go_escapable_scope_callback(context_ptr, callback);
+		isolate->SetData(PREV_ESCAPABLE_SLOT, prev_context);
+}
+
+void* V8_Escapable_Escape(void* escapeContext){
+		//V8_Context* ctx = static_cast<V8_Context*>(context);
+		V8_Context* ectx = static_cast<V8_Context*>(escapeContext);
+		ESCAPABLE_HANDLE_SCOPE(ectx->GetIsolate());
+		//return new_V8_Value(ctx, escapable_scope.Escape(ectx->self));
+		Local<Context> escape_context = Local<Context>::New(ectx->GetIsolate(), ectx->self);
+		Local<Context> local_context = escapable_scope.Escape(escape_context);
+		if(local_context.IsEmpty())
+			return NULL;
+		return (void*)(new V8_Context(ectx->GetIsolate(), local_context));
+}
+
 V8_Context* V8_Current_Context(Isolate* isolate) {
 	void* data = isolate->GetData(PREV_CONTEXT_SLOT);
 	if (data == NULL)
@@ -481,6 +510,66 @@ void* V8_Context_TryCatchException(void* context, void* callback) {
 	}
 
 	return go_make_exception(new_V8_Value(ctx, try_catch.Exception()), V8_Make_Message(message));
+}
+
+void V8_Context_SetSecurityToken(void* context, void* value){
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+	V8_Value* the_value = static_cast<V8_Value*>(value);
+	Local<Value> local_value = Local<Value>::New(isolate, the_value->self);
+	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
+	local_context->SetSecurityToken(local_value);
+}
+
+void* V8_Context_GetSecurityToken(void* context){
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
+	return new_V8_Value(ctx, local_context->GetSecurityToken());
+}
+
+void V8_Context_UseDefaultSecurityToken(void* context){
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
+	local_context->UseDefaultSecurityToken();
+}
+
+void* V8_Context_GetEmbedderData(void* context, int index){
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
+	return new_V8_Value(ctx,local_context->GetEmbedderData(index));
+}
+
+void V8_Context_SetEmbedderData(void* context, int index, void* value){
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+	V8_Value* the_value = static_cast<V8_Value*>(value);
+	Local<Value> local_value = Local<Value>::New(isolate, the_value->self);
+	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
+	local_context->SetEmbedderData(index,local_value);
+}
+
+void V8_Context_Enter(void* context){
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
+	local_context->Enter();
+}
+
+void V8_Context_Exit(void* context){
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
+	local_context->Exit();
+}
+
+/*
+Isolate
+*/
+unsigned int V8_Isolate_GetNumberOfDataSlots(){
+		return Isolate::GetNumberOfDataSlots();
 }
 
 /*
@@ -752,6 +841,23 @@ void* V8_Object_GetInternalField(void* value, int index) {
 	return Local<External>::Cast(data)->Value();
 }
 
+int V8_Object_SetHiddenValue(void* value, const char* key ,void* prop_value){
+	VALUE_SCOPE(value);
+	Local<Object> obj = Local<Object>::Cast(local_value);
+	return obj -> SetHiddenValue(
+		String::NewFromUtf8(isolate, key, String::kInternalizedString),
+		Local<Value>::New(isolate, static_cast<V8_Value*>(prop_value)->self)
+	);
+}
+
+int V8_Object_DeleteHiddenValue(void* value, const char* key){
+	VALUE_SCOPE(value);
+	Local<Object> obj = Local<Object>::Cast(local_value);
+	return obj -> DeleteHiddenValue(
+		String::NewFromUtf8(isolate, key, String::kInternalizedString)
+	);
+}
+
 void V8_Object_SetInternalField(void* value, int index, void* data) {
 	VALUE_SCOPE(value);
 	Local<Object> obj = Local<Object>::Cast(local_value);
@@ -880,6 +986,13 @@ int V8_Object_SetPrototype(void* value, void* proto) {
 	);
 }
 
+void* V8_Object_GetConstructorName(void* value){
+	VALUE_SCOPE(value);
+	return new_V8_Value(V8_Current_Context(isolate),
+		Local<Object>::Cast(local_value)->GetConstructorName()
+	);
+}
+
 int V8_Object_IsCallable(void* value) {
 	VALUE_SCOPE(value);
 
@@ -950,7 +1063,8 @@ void V8_Object_SetAccessor(void *value, const char* key, int key_length, void* g
 
 	Local<Object>::Cast(local_value)->SetAccessor(
 		String::NewFromUtf8(isolate, key, String::kInternalizedString, key_length),
-		V8_AccessorGetterCallback, setter == NULL ? NULL : V8_AccessorSetterCallback,
+		V8_AccessorGetterCallback,
+		setter == NULL ? NULL : V8_AccessorSetterCallback,
  		callback_info
 	);
 }
@@ -1409,7 +1523,8 @@ void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, v
 
 	local_template->SetAccessor(
 		String::NewFromUtf8(isolate, key, String::kInternalizedString, key_length),
-		V8_AccessorGetterCallback, setter == NULL ? NULL : V8_AccessorSetterCallback,
+		V8_AccessorGetterCallback,
+		setter == NULL ? NULL : V8_AccessorSetterCallback,
  		callback_info
 	);
 }
@@ -1650,6 +1765,11 @@ void V8_FunctionTemplate_SetClassName(void* tpl, const char* name, int name_leng
 void* V8_FunctionTemplate_InstanceTemplate(void* tpl) {
 	FUNCTION_TEMPLATE_HANDLE_SCOPE(tpl);
 	return new V8_ObjectTemplate(the_template->engine, local_template->InstanceTemplate());
+}
+
+void V8_FunctionTemplate_SetHiddenPrototype(void* tpl, int value){
+	FUNCTION_TEMPLATE_HANDLE_SCOPE(tpl);
+	local_template->SetHiddenPrototype(value == 1);
 }
 
 /*
