@@ -538,3 +538,17 @@ func (ft *FunctionTemplate) InstanceTemplate() *ObjectTemplate {
 	self := C.V8_FunctionTemplate_InstanceTemplate(ft.self)
 	return newObjectTemplate(ft.engine, self)
 }
+
+func (ft *FunctionTemplate) SetHiddenPrototype(val bool){
+	ft.Lock()
+	defer ft.Unlock()
+
+	if ft.engine == nil {
+		panic("engine can't be nil")
+	}
+	v := 0;
+	if val {
+		v = 1
+	}
+	C.V8_FunctionTemplate_SetHiddenPrototype(ft.self, C.int(v))
+}

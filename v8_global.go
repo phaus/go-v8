@@ -22,6 +22,12 @@ func GetVersion() string {
 	return C.GoString(C.V8_GetVersion())
 }
 
+
+//number of isolate data slots
+func GetIsolateNumberOfDataSlots() uint{
+	return uint(C.V8_Isolate_GetNumberOfDataSlots())
+}
+
 func SetFlagsFromString(cmd string) {
 	cs := C.CString(cmd)
 	defer C.free(unsafe.Pointer(cs))

@@ -239,6 +239,20 @@ func (o *Object) SetPrototype(proto *Object) bool {
 	return C.V8_Object_SetPrototype(o.self, proto.self) == 1
 }
 
+func (o *Object) SetHiddenValue(key string, value *Value) bool{
+	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&key)).Data)
+	return C.V8_Object_SetHiddenValue(o.self, (*C.char)(keyPtr), value.self) == 1
+}
+
+func (o *Object) DeleteHiddenValue(key string) bool{
+	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&key)).Data)
+	return C.V8_Object_DeleteHiddenValue(o.self, (*C.char)(keyPtr)) == 1
+}
+
+func (o *Object) GetConstructorName() string{
+	return newValue(o.engine, C.V8_Object_GetConstructorName(o.self)).ToString()
+}
+
 // An instance of the built-in array constructor (ECMA-262, 15.4.2).
 //
 type Array struct {

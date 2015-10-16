@@ -22,6 +22,10 @@ type ContextScope struct {
 	context *Context
 }
 
+type EscapableScope struct {
+	ContextScope
+}
+
 func (cs ContextScope) GetEngine() *Engine {
 	return cs.context.engine
 }
@@ -65,8 +69,17 @@ func go_context_scope_callback(c unsafe.Pointer, callback unsafe.Pointer) {
 	(*(*func(ContextScope))(callback))(ContextScope{(*Context)(c)})
 }
 
+//export go_escapable_scope_callback
+func go_escapable_scope_callback(c unsafe.Pointer, callback unsafe.Pointer){
+	(*(*func(EscapableScope))(callback))(EscapableScope{ContextScope{(*Context)(c)}})
+}
+
 func (c *Context) Scope(callback func(ContextScope)) {
 	C.V8_Context_Scope(c.self, unsafe.Pointer(c), unsafe.Pointer(&callback))
+}
+
+func (c *Context) EscapableScope(callback func(EscapableScope)){
+	C.V8_Escapable_Scope(c.self, unsafe.Pointer(c), unsafe.Pointer(&callback))
 }
 
 //export go_try_catch_callback
@@ -101,6 +114,28 @@ func escape(s string) string {
 	return output
 }
 
+func (es EscapableScope) Escape(escontext *Context) *Context {
+	self := C.V8_Escapable_Escape(escontext.self)
+	if self == nil {
+		return nil
+	}
+	e := es.GetEngine()
+	result := &Context{
+		self:   self,
+		engine: e,
+	}
+
+	runtime.SetFinalizer(result, func(c *Context) {
+		if traceDispose {
+			println("v8.Context.Dispose()", c.self)
+		}
+		C.V8_DisposeContext(c.self)
+	})
+
+	return result
+	//return newValue(es.GetEngine(), C.V8_Escapable_Escape())
+}
+
 func (cs ContextScope) ThrowException(err string) {
 	cs.Eval(`throw "` + escape(err) + `"`)
 	//
@@ -114,7 +149,7 @@ func (cs ContextScope) ThrowException2(value *Value) {
 	C.V8_Context_ThrowException2(value.self)
 }
 
-func (cs ContextScope) TryCatch(callback func()) error {
+func (cs ContextScope) TryCatch(callback func()) *Message {
 	msg := C.V8_Context_TryCatch(cs.context.self, unsafe.Pointer(&callback))
 	if msg == nil {
 		return nil
