@@ -78,8 +78,32 @@ func (c *Context) Scope(callback func(ContextScope)) {
 	C.V8_Context_Scope(c.self, unsafe.Pointer(c), unsafe.Pointer(&callback))
 }
 
+func (c *Context) GetEngine() *Engine{
+	return c.engine
+}
+
 func (c *Context) EscapableScope(callback func(EscapableScope)){
 	C.V8_Escapable_Scope(c.self, unsafe.Pointer(c), unsafe.Pointer(&callback))
+}
+
+func (c *Context) SetSecurityToken(value *Value){
+	C.V8_Context_SetSecurityToken(c.self, value.self)
+}
+
+func (c *Context) GetSecurityToken() *Value {
+	return newValue(c.GetEngine(), C.V8_Context_GetSecurityToken(c.self))
+}
+
+func (c *Context) UseDefaultSecurityToken() {
+	C.V8_Context_UseDefaultSecurityToken(c.self)
+}
+
+func (c *Context) GetEmbedderData(index int) *Value {
+	return newValue(c.GetEngine(), C.V8_Context_GetEmbedderData(c.self,C.int(index)))
+}
+
+func (c *Context) SetEmbedderData(index int, value *Value) {
+	C.V8_Context_SetEmbedderData(c.self, C.int(index), value.self)
 }
 
 //export go_try_catch_callback
