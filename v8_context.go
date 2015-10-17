@@ -106,6 +106,14 @@ func (c *Context) SetEmbedderData(index int, value *Value) {
 	C.V8_Context_SetEmbedderData(c.self, C.int(index), value.self)
 }
 
+func (c *Context) SetAlignedPointerInEmbedderData(index int, ptr unsafe.Pointer){
+	C.V8_Context_SetAlignedPointerInEmbedderData(c.self, C.int(index), ptr)
+}
+
+func (c *Context) GetAlignedPointerFromEmbedderData(index int) unsafe.Pointer{
+	return C.V8_Context_GetAlignedPointerFromEmbedderData(c.self, C.int(index))
+}
+
 //export go_try_catch_callback
 func go_try_catch_callback(callback unsafe.Pointer) {
 	(*(*func())(callback))()
