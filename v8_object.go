@@ -253,6 +253,13 @@ func (o *Object) GetConstructorName() string{
 	return newValue(o.engine, C.V8_Object_GetConstructorName(o.self)).ToString()
 }
 
+func (o *Object) SetAlignedPointerInInternalField(index int, val_ptr unsafe.Pointer) {
+	C.V8_Object_SetAlignedPointerInInternalField(o.self, C.int(index), val_ptr)
+}
+
+func (o *Object) GetAlignedPointerFromInternalField(index int) unsafe.Pointer{
+	return C.V8_Object_GetAlignedPointerFromInternalField(o.self, C.int(index))
+}
 // An instance of the built-in array constructor (ECMA-262, 15.4.2).
 //
 type Array struct {
