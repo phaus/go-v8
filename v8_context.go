@@ -147,7 +147,7 @@ func escape(s string) string {
 }
 
 func (es EscapableScope) Escape(escontext *Context) *Context {
-	self := C.V8_Escapable_Escape(escontext.self)
+	self := C.V8_Context_Escape(es.context.self ,escontext.self)
 	if self == nil {
 		return nil
 	}
@@ -166,6 +166,11 @@ func (es EscapableScope) Escape(escontext *Context) *Context {
 
 	return result
 	//return newValue(es.GetEngine(), C.V8_Escapable_Escape())
+}
+
+func (es EscapableScope) EscapeValue(value *Value) *Value {
+	self := C.V8_Value_Escape(es.context.self ,value.self)
+	return newValue(es.GetEngine(), self)
 }
 
 func (cs ContextScope) ThrowException(err string) {
