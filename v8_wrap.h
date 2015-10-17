@@ -240,6 +240,10 @@ extern int V8_Object_SetHiddenValue(void* value, const char* key ,void* data);
 
 extern int V8_Object_DeleteHiddenValue(void* value, const char* key);
 
+extern void V8_Object_SetAlignedPointerInInternalField(void* value, int index, void* value_ptr);
+
+extern void* V8_Object_GetAlignedPointerFromInternalField(void* value, int index);
+
 extern void* V8_Object_GetConstructorName(void* value);
 
 extern void* V8_AccessorCallbackInfo_This(void *info, AccessorDataEnum type);

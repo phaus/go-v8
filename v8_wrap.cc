@@ -876,6 +876,18 @@ int V8_Object_DeleteHiddenValue(void* value, const char* key){
 	);
 }
 
+void V8_Object_SetAlignedPointerInInternalField(void* value, int index, void* value_ptr){
+	VALUE_SCOPE(value);
+	Local<Object> obj = Local<Object>::Cast(local_value);
+	obj->SetAlignedPointerInInternalField(index, value_ptr);
+}
+
+void* V8_Object_GetAlignedPointerFromInternalField(void* value, int index) {
+	VALUE_SCOPE(value);
+	Local<Object> obj = Local<Object>::Cast(local_value);
+	return obj->GetAlignedPointerFromInternalField(index);
+}
+
 void V8_Object_SetInternalField(void* value, int index, void* data) {
 	VALUE_SCOPE(value);
 	Local<Object> obj = Local<Object>::Cast(local_value);
