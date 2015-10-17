@@ -519,6 +519,7 @@ void V8_Context_SetSecurityToken(void* context, void* value){
 	Local<Value> local_value = Local<Value>::New(isolate, the_value->self);
 	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
 	local_context->SetSecurityToken(local_value);
+	ctx->self.Reset(ctx->GetIsolate(), local_context);
 }
 
 void* V8_Context_GetSecurityToken(void* context){
@@ -533,6 +534,7 @@ void V8_Context_UseDefaultSecurityToken(void* context){
 	ISOLATE_SCOPE(ctx->GetIsolate());
 	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
 	local_context->UseDefaultSecurityToken();
+	ctx->self.Reset(ctx->GetIsolate(), local_context);
 }
 
 void* V8_Context_GetEmbedderData(void* context, int index){
@@ -549,6 +551,7 @@ void V8_Context_SetEmbedderData(void* context, int index, void* value){
 	Local<Value> local_value = Local<Value>::New(isolate, the_value->self);
 	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
 	local_context->SetEmbedderData(index,local_value);
+	ctx->self.Reset(ctx->GetIsolate(), local_context);
 }
 
 void V8_Context_Enter(void* context){
@@ -563,6 +566,21 @@ void V8_Context_Exit(void* context){
 	ISOLATE_SCOPE(ctx->GetIsolate());
 	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
 	local_context->Exit();
+}
+
+void V8_Context_SetAlignedPointerInEmbedderData(void* context, int index, void* value_ptr){
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
+	local_context->SetAlignedPointerInEmbedderData(index, value_ptr);
+	ctx->self.Reset(ctx->GetIsolate(), local_context);
+}
+
+void* V8_Context_GetAlignedPointerFromEmbedderData(void* context, int index) {
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
+	return local_context->GetAlignedPointerFromEmbedderData(index);
 }
 
 /*

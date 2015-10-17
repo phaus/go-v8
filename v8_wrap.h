@@ -94,6 +94,10 @@ extern void V8_Context_UseDefaultSecurityToken(void* context);
 extern void* V8_Context_GetEmbedderData(void* context, int index);
 
 extern void V8_Context_SetEmbedderData(void* context, int index, void* value);
+
+extern void V8_Context_SetAlignedPointerInEmbedderData(void* context, int index, void* value_ptr);
+
+extern void* V8_Context_GetAlignedPointerFromEmbedderData(void* context, int index);
 /*
 Escapable Scope
 */
@@ -356,6 +360,13 @@ extern void V8_ObjectTemplate_SetIndexedPropertyHandler(
 );
 
 extern void V8_ObjectTemplate_SetInternalFieldCount(void *tpl, int count);
+
+extern void V8_ObjectTemplate_SetAccessCheckCallbacks(
+    void* tpl,
+    void* namesecurity,
+    void* indexedsecuriry,
+    void* data
+);
 
 /*
 function template
