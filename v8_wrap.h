@@ -29,6 +29,14 @@ typedef enum {
         OTA_Num
 } AccessorDataEnum;
 
+typedef enum {
+    OTAC_Context = 0,
+    OTAC_Name ,
+    OTAC_Index ,
+    OTAC_Data,
+    OTAC_Num
+} AccessCheckDataEnum;
+
 typedef struct {
         void*        engine;
         void*        info;
@@ -50,6 +58,15 @@ typedef struct {
 	uint32_t  index;
         void*     returnValue;
 } V8_PropertyCallbackInfo;
+
+typedef struct{
+  void*   engine;
+  void*   host;
+  void*   key;  
+  uint32_t  index;
+  void*   data;
+  void*   callback;
+} V8_AccessCheckCallbackInfo;
 
 /*
 engine
@@ -103,7 +120,9 @@ Escapable Scope
 */
 extern void V8_Escapable_Scope(void* context, void* context_ptr, void* callback);
 
-extern void* V8_Escapable_Escape(void* escapeContext);
+extern void* V8_Context_Escape(void* context, void* escapeContext);
+
+extern void* V8_Value_Escape(void* context ,void* cscapeValue);
 /*
 Isolate
 */
@@ -241,6 +260,10 @@ extern int V8_Object_SetHiddenValue(void* value, const char* key ,void* data);
 extern int V8_Object_DeleteHiddenValue(void* value, const char* key);
 
 extern void V8_Object_SetAlignedPointerInInternalField(void* value, int index, void* value_ptr);
+
+extern void* V8_Object_GetRealNamedProperty(void* value, const char* key);
+
+extern int V8_Object_HasRealNamedProperty(void* value, const char* key);
 
 extern void* V8_Object_GetAlignedPointerFromInternalField(void* value, int index);
 

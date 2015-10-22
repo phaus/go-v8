@@ -342,7 +342,7 @@ void V8_Escapable_Scope(void* context, void* context_ptr, void* callback){
 		isolate->SetData(PREV_ESCAPABLE_SLOT, prev_context);
 }
 
-void* V8_Escapable_Escape(void* escapeContext){
+void* V8_Context_Escape(void* context,void* escapeContext){
 		//V8_Context* ctx = static_cast<V8_Context*>(context);
 		V8_Context* ectx = static_cast<V8_Context*>(escapeContext);
 		ESCAPABLE_HANDLE_SCOPE(ectx->GetIsolate());
@@ -352,6 +352,15 @@ void* V8_Escapable_Escape(void* escapeContext){
 		if(local_context.IsEmpty())
 			return NULL;
 		return (void*)(new V8_Context(ectx->GetIsolate(), local_context));
+}
+
+void* V8_Value_Escape(void* context, void* cscapeValue){
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	V8_Value* the_value = static_cast<V8_Value*>(cscapeValue);
+	Local<Value> local_value = Local<Value>::New(the_value->GetIsolate(), the_value->self);
+	ESCAPABLE_HANDLE_SCOPE(the_value->GetIsolate());
+	Local<Value> local = escapable_scope.Escape(local_value);
+	return new_V8_Value(ctx, local);
 }
 
 V8_Context* V8_Current_Context(Isolate* isolate) {
@@ -886,6 +895,22 @@ void* V8_Object_GetAlignedPointerFromInternalField(void* value, int index) {
 	VALUE_SCOPE(value);
 	Local<Object> obj = Local<Object>::Cast(local_value);
 	return obj->GetAlignedPointerFromInternalField(index);
+}
+
+void* V8_Object_GetRealNamedProperty(void* value, const char* key){
+	VALUE_SCOPE(value);
+	return new_V8_Value(V8_Current_Context(isolate),
+		Local<Object>::Cast(local_value)->GetRealNamedProperty(
+			String::NewFromUtf8(isolate, key, String::kInternalizedString)
+		)
+	);
+}
+
+int V8_Object_HasRealNamedProperty(void* value, const char* key){
+	VALUE_SCOPE(value);
+	return Local<Object>::Cast(local_value)->HasRealNamedProperty(
+		String::NewFromUtf8(isolate, key, String::kInternalizedString)
+	);
 }
 
 void V8_Object_SetInternalField(void* value, int index, void* data) {
@@ -1747,6 +1772,62 @@ void V8_ObjectTemplate_SetInternalFieldCount(void* tpl, int count) {
 	local_template->SetInternalFieldCount(count);
 }
 
+bool V8_AccesCheckCallback(
+	AccessCheckDataEnum typ,
+	Local<Object> host,
+	uint32_t index,
+	Local<Value> key,
+	//void* key,
+	AccessType type,
+	Local<Value> data
+){
+
+	Local<Array> callback_data = Local<Array>::Cast(data);
+	void* engine = Local<External>::Cast(callback_data->Get(OTAC_Context))->Value();
+	ENGINE_SCOPE(engine);
+	V8_AccessCheckCallbackInfo callback_info;
+	callback_info.engine = engine;
+	callback_info.data = Local<External>::Cast(callback_data->Get(OTAC_Data))->Value();
+	callback_info.callback = Local<External>::Cast(callback_data->Get(typ))->Value();
+	callback_info.host =  new_V8_Value(the_engine, host);
+	if(typ == OTAC_Index)
+		callback_info.index = index;
+	else
+		callback_info.key = new_V8_Value(the_engine, key);
+
+	return go_access_check_callback(typ, &callback_info, callback_info.engine);
+}
+
+bool V8_NamedSecurityCallback(Local<Object> host, Local<Value> key, AccessType type, Local<Value> data){
+	return V8_AccesCheckCallback(OTAC_Name, host, -1, key, type, data);
+}
+
+bool V8_IndexedSecurityCallback(Local<Object> host, uint32_t key, AccessType type, Local<Value> data){
+	return V8_AccesCheckCallback(OTAC_Index, host, key, data, type, data);
+}
+
+void V8_ObjectTemplate_SetAccessCheckCallbacks(
+	void* tpl,
+	void* namesecurity,
+	void* indexedsecuriry,
+	void* data
+){
+	OBJECT_TEMPLATE_HANDLE_SCOPE(tpl);
+	Handle<Array> callback_info = Array::New(isolate, OTAC_Num);
+	callback_info->Set(OTAC_Context, External::New(isolate, (void*)the_template->engine));
+	callback_info->Set(OTAC_Name, External::New(isolate, namesecurity));
+	callback_info->Set(OTAC_Index, External::New(isolate, indexedsecuriry));
+	callback_info->Set(OTAC_Data, External::New(isolate, data));
+
+	if (callback_info.IsEmpty())
+		return;
+
+	local_template->SetAccessCheckCallbacks(
+			V8_NamedSecurityCallback,
+			V8_IndexedSecurityCallback,
+			callback_info
+	);
+}
 
 /*
 function template

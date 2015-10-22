@@ -264,6 +264,18 @@ func (ot *ObjectTemplate) SetNamedPropertyHandler(
 		unsafe.Pointer(&data))
 }
 
+func (ot *ObjectTemplate) SetAccessCheckCallbacks(
+	namesecurity NamedSecurityCallback,
+	indexedsecuriry IndexedSecurityCallback,
+	data interface{},
+){
+	var namePointer, indexPointer, dataPointer unsafe.Pointer
+	namePointer = unsafe.Pointer(&namesecurity)
+	indexPointer = unsafe.Pointer(&indexedsecuriry)
+	dataPointer = unsafe.Pointer(&data)
+	C.V8_ObjectTemplate_SetAccessCheckCallbacks(ot.self, namePointer, indexPointer, dataPointer)
+}
+
 func (ot *ObjectTemplate) SetIndexedPropertyHandler(
 	getter IndexedPropertyGetterCallback,
 	setter IndexedPropertySetterCallback,
@@ -382,6 +394,19 @@ type AccessorGetterCallback func(name string, info AccessorCallbackInfo)
 
 type AccessorSetterCallback func(name string, value *Value, info AccessorCallbackInfo)
 
+type AccessCheckCallbackInfo struct{
+	self 	unsafe.Pointer
+	data  interface{}
+	context *Context
+	host unsafe.Pointer
+	key unsafe.Pointer
+	index uint32
+	typ 	C.AccessCheckDataEnum
+}
+
+type NamedSecurityCallback func(info AccessCheckCallbackInfo) bool
+type IndexedSecurityCallback func(info AccessCheckCallbackInfo) bool
+
 //export go_accessor_callback
 func go_accessor_callback(typ C.AccessorDataEnum, info *C.V8_AccessorCallbackInfo, context unsafe.Pointer) {
 	name := reflect.StringHeader{
@@ -455,6 +480,36 @@ func go_indexed_property_callback(typ C.PropertyDataEnum, info *C.V8_PropertyCal
 		(*(*IndexedPropertyEnumeratorCallback)(info.callback))(
 			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, gcontext})
 	}
+}
+
+//export go_access_check_callback
+func go_access_check_callback(typ C.AccessCheckDataEnum, info *C.V8_AccessCheckCallbackInfo, context unsafe.Pointer ) bool {
+	gcontext := (*Context)(context)
+	switch typ {
+	case C.OTAC_Name:
+		(*(*NamedSecurityCallback)(info.callback))(
+			AccessCheckCallbackInfo {
+				self : unsafe.Pointer(info),
+				typ : typ,
+				host : unsafe.Pointer(info.host),
+				key : unsafe.Pointer(info.key),
+				data : *(*interface{})(info.data),
+				context : gcontext,
+			})
+	case C.OTAC_Index:
+		(*(*IndexedSecurityCallback)(info.callback))(
+			AccessCheckCallbackInfo{
+				self : unsafe.Pointer(info),
+				typ : typ,
+				host : unsafe.Pointer(info.host),
+				index : uint32(info.index),
+				data : *(*interface{})(info.data),
+				context : gcontext,
+			})
+		default:
+			panic("impossible type")
+	}
+	return false
 }
 
 type FunctionTemplate struct {
