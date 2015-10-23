@@ -244,6 +244,11 @@ func (o *Object) SetHiddenValue(key string, value *Value) bool{
 	return C.V8_Object_SetHiddenValue(o.self, (*C.char)(keyPtr), value.self) == 1
 }
 
+func (o *Object) GetHiddenValue(key string) *Value {
+	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&key)).Data)
+	return newValue(o.engine, C.V8_Object_GetHiddenValue(o.self, (*C.char)(keyPtr)))
+}
+
 func (o *Object) DeleteHiddenValue(key string) bool{
 	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&key)).Data)
 	return C.V8_Object_DeleteHiddenValue(o.self, (*C.char)(keyPtr)) == 1

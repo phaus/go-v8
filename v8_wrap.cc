@@ -877,6 +877,17 @@ int V8_Object_SetHiddenValue(void* value, const char* key ,void* prop_value){
 	);
 }
 
+void* V8_Object_GetHiddenValue(void* value, const char* key){
+	VALUE_SCOPE(value);
+	Local<Object> obj = Local<Object>::Cast(local_value);
+	return new_V8_Value(
+		V8_Current_Context(isolate),
+		obj->GetHiddenValue(
+			String::NewFromUtf8(isolate, key, String::kInternalizedString)
+		)
+	);
+}
+
 int V8_Object_DeleteHiddenValue(void* value, const char* key){
 	VALUE_SCOPE(value);
 	Local<Object> obj = Local<Object>::Cast(local_value);

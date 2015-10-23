@@ -62,7 +62,7 @@ typedef struct {
 typedef struct{
   void*   engine;
   void*   host;
-  void*   key;  
+  void*   key;
   uint32_t  index;
   void*   data;
   void*   callback;
@@ -254,6 +254,8 @@ extern int V8_Object_InternalFieldCount(void* value);
 extern void* V8_Object_GetInternalField(void* value, int index);
 
 extern void V8_Object_SetInternalField(void* value, int index, void* data);
+
+extern void* V8_Object_GetHiddenValue(void* value, const char* key);
 
 extern int V8_Object_SetHiddenValue(void* value, const char* key ,void* data);
 
