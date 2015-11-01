@@ -47,6 +47,9 @@ func (cs ContextScope) Run(s *Script) *Value {
 	return newValue(cs.GetEngine(), C.V8_Script_Run(s.self))
 }
 
+func (e *Engine) Run(s *Script) *Value{
+	return newValue(e, C.V8_Script_Run(s.self))
+}
 // The origin, within a file, of a script.
 //
 type ScriptOrigin struct {

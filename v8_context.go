@@ -114,6 +114,9 @@ func (c *Context) GetAlignedPointerFromEmbedderData(index int) unsafe.Pointer{
 	return C.V8_Context_GetAlignedPointerFromEmbedderData(c.self, C.int(index))
 }
 
+func (c *Context) Global() *Object {
+	return newValue(c.GetEngine(), C.V8_Context_Global(c.self)).ToObject()
+}
 //export go_try_catch_callback
 func go_try_catch_callback(callback unsafe.Pointer) {
 	(*(*func())(callback))()
