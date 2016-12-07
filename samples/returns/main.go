@@ -1,7 +1,7 @@
 package main
 
 import "fmt"
-import "../../"
+import "github.com/saibing/go-v8"
 
 const (
 	code = `

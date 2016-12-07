@@ -1,10 +1,9 @@
 package v8
 
-/*
-#cgo pkg-config: v8.pc
-#include "v8_wrap.h"
-#include <stdlib.h>
-*/
+// #include <stdlib.h>
+// #include "v8_wrap.h"
+// #cgo CXXFLAGS: -std=c++11
+// #cgo LDFLAGS: -lv8_libplatform -lv8_base -lv8_libbase -lv8_snapshot -licudata -licui18n -licuucx -licustubdata -lrt -ldl -pthread
 import "C"
 import "unsafe"
 import "runtime"

@@ -1,6 +1,6 @@
 package main
 
-import "../../"
+import "github.com/saibing/go-v8"
 
 func main() {
 	engine := v8.NewEngine()

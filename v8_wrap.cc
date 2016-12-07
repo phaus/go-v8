@@ -5,6 +5,7 @@
 #include <string>
 #include "v8.h"
 #include "v8_wrap.h"
+#include "libplatform/libplatform.h"
 
 extern "C" {
 
@@ -213,13 +214,36 @@ void* new_V8_Value(V8_Context* context, Handle<Value> value) {
 	return (void*)new V8_Value(context, value);
 }
 
+class ArrayBufferAllocator : public v8::ArrayBuffer::Allocator
+{
+public:
+    virtual void *Allocate(size_t length)
+    {   
+        void *data = AllocateUninitialized(length);
+        return data == NULL ? data : memset(data, 0, length);
+    }   
+    virtual void *AllocateUninitialized(size_t length)
+    {   
+        return malloc(length);
+    }   
+    virtual void Free(void *data, size_t) { free(data); }
+};
+
 /*
 engine
 */
 void* V8_NewEngine() {
-	//V8::InitializeICU();
+    // Initialize V8.
+    V8::InitializeICU();
+    //V8::InitializeExternalStartupData(argv[0]);
+    Platform* platform = platform::CreateDefaultPlatform();
+    V8::InitializePlatform(platform);
+    V8::Initialize();
 
-	ISOLATE_SCOPE(Isolate::New());
+    ArrayBufferAllocator allocator;
+    Isolate::CreateParams create_params;
+    create_params.array_buffer_allocator = &allocator;
+	ISOLATE_SCOPE(Isolate::New(create_params));
 
 	HandleScope handle_scope(isolate);
 	Handle<Context> context = Context::New(isolate);
@@ -599,29 +623,7 @@ unsigned int V8_Isolate_GetNumberOfDataSlots(){
 		return Isolate::GetNumberOfDataSlots();
 }
 
-/*
-script
-*/
-void* V8_Compile(void* engine, const char* code, int length, void* go_script_origin) {
-	ENGINE_SCOPE(engine);
-
-	HandleScope handle_scope(isolate);
-
-	ScriptOrigin script_origin(String::NewFromUtf8(isolate, ""));
-
-	if (go_script_origin) {
-		char * cstr = go_script_origin_get_name(go_script_origin);
-		int line    = go_script_origin_get_line(go_script_origin);
-		int column  = go_script_origin_get_column(go_script_origin);
-
-		script_origin = ScriptOrigin(
-			String::NewFromUtf8(isolate, cstr),
-			Integer::New(isolate, line),
-			Integer::New(isolate, column)
-		);
-
-		free(cstr);
-	}
+static void* do_compile(V8_Context* the_engine, Isolate* isolate, const char* code, int length, ScriptOrigin& script_origin) {
 
 	ScriptCompiler::Source source(
 		String::NewFromUtf8(isolate, code, String::kInternalizedString, length),
@@ -634,6 +636,32 @@ void* V8_Compile(void* engine, const char* code, int length, void* go_script_ori
 		return NULL;
 
 	return (void*)(new V8_Script(the_engine, script));
+}
+/*
+script
+*/
+void* V8_Compile(void* engine, const char* code, int length, void* go_script_origin) {
+	ENGINE_SCOPE(engine);
+
+	HandleScope handle_scope(isolate);
+
+	if (go_script_origin) {
+		char * cstr = go_script_origin_get_name(go_script_origin);
+		int line    = go_script_origin_get_line(go_script_origin);
+		int column  = go_script_origin_get_column(go_script_origin);
+
+		ScriptOrigin script_origin(
+			String::NewFromUtf8(isolate, cstr),
+			Integer::New(isolate, line),
+			Integer::New(isolate, column)
+		);
+
+		free(cstr);
+        return do_compile(the_engine, isolate, code, length, script_origin);
+	} else {
+	    ScriptOrigin script_origin(String::NewFromUtf8(isolate, ""));
+        return do_compile(the_engine, isolate, code, length, script_origin);
+    }
 }
 
 void V8_DisposeScript(void* script) {
@@ -1001,11 +1029,12 @@ int V8_Object_DeleteProperty(void* value, const char* key, int key_length) {
 }
 
 int V8_Object_ForceDeleteProperty(void* value, const char* key, int key_length) {
-	VALUE_SCOPE(value);
+	//VALUE_SCOPE(value);
 
-	return Local<Object>::Cast(local_value)->ForceDelete(
-		String::NewFromUtf8(isolate, key, String::kInternalizedString, key_length)
-	);
+	//return Local<Object>::Cast(local_value)->ForceDelete(
+	//	String::NewFromUtf8(isolate, key, String::kInternalizedString, key_length)
+	//);
+    return 0;
 }
 
 int V8_Object_HasElement(void* value, uint32_t index) {
@@ -1926,7 +1955,7 @@ public:
 };
 
 void V8_UseDefaultArrayBufferAllocator() {
-	V8::SetArrayBufferAllocator(new DefaultArrayBufferAllocator());
+	//V8::SetArrayBufferAllocator(new DefaultArrayBufferAllocator());
 }
 
 void V8_MessageCallback(Handle<Message> message, Handle<Value> error) {

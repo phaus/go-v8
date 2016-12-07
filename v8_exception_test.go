@@ -157,7 +157,8 @@ func Test_TryCatch(t *testing.T) {
 	defer engine.SetCaptureStackTraceForUncaughtExceptions(false, 0)
 
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
-		err := cs.TryCatch(func() {
+		var err error
+		err = cs.TryCatch(func() {
 			cs.Eval(`
 				function a() {
 					1+2;
@@ -197,8 +198,8 @@ func Test_TryCatch_WithScriptOrigin(t *testing.T) {
 
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		var script *Script
-
-		err := cs.TryCatch(func() {
+		var err error
+		err = cs.TryCatch(func() {
 			script = engine.Compile([]byte(`
             	function a(c) {
             		c();

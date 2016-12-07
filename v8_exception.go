@@ -137,7 +137,7 @@ func maybe_free(p unsafe.Pointer) {
 }
 
 type exception struct {
-	unsafe.Pointer
+	p unsafe.Pointer
 	*Message
 }
 
@@ -148,5 +148,5 @@ func go_make_exception(value, message unsafe.Pointer) unsafe.Pointer {
 
 	go_exception := &exception{value, msg}
 
-	return unsafe.Pointer(go_exception)
+	return go_exception.p
 }

@@ -1,7 +1,7 @@
 package main
 
 import "fmt"
-import "../../"
+import "github.com/saibing/go-v8"
 
 type MyType struct {
 	Id       int
@@ -28,10 +28,10 @@ func main() {
 		fmt.Println(v...)
 	})
 
-	global.Bind("test", func(obj *v8.Object) {
-		raw := obj.GetInternalField(0).(*v8.BindObject).Target
-		raw.Interface().(*MyType).Callback(123, "dada")
-	})
+	//global.Bind("test", func(obj *v8.Object) {
+	//	raw := obj.GetInternalField(0).(*v8.BindObject).Target
+	//	raw.Interface().(*MyType).Callback(123, "dada")
+	//})
 
 	engine.NewContext(global).Scope(func(cs v8.ContextScope) {
 		cs.Eval(`
@@ -53,7 +53,7 @@ func main() {
 
 			a.Callback(10, "Hello");
 
-			test(a);
+			//test(a);
 		`)
 	})
 }

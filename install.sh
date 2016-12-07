@@ -1,6 +1,6 @@
 #!/bin/bash
 
-version="3.28"
+version="5.1"
 
 # build v8 native version
 cd "v8-$version"
