@@ -39,12 +39,12 @@ $ find ./out -name *.a
 ./out/Release/obj.target/tools/icu/libicui18n.a
 ./out/Release/obj.host/tools/icu/libicutools.a
 
-$ cp ./out/Release/obj.target/deps/v8/tools/gyp/*.a $GO_V8/lib/linux_amd64/
-$ cp ./out/Release/obj.target/tools/icu/*.a $GO_V8/lib/linux_amd64/
+$ cp ./out/Release/obj.target/deps/v8/tools/gyp/*.a v8/lib/linux_amd64/
+$ cp ./out/Release/obj.target/tools/icu/*.a v8/lib/linux_amd64/
 ```
 
 ## 4. Copy v8 header file
 
 ```sh
-$ cp -r ./deps/v8/include/* $GO_V8/include/
+$ cp -r ./deps/v8/include/* v8/include/
 ```
