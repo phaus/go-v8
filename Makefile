@@ -1,4 +1,4 @@
-### Makefile for bingo
+### Makefile for go-v8
 
 # Ensure GOARCH is set before running build process.
 ifeq "$(GOARCH)" ""
@@ -125,7 +125,7 @@ help:
 	@echo "    debug      build a debug version"
 	@echo "    race       build a data race check version"
 	@echo "    detail     build with detail information."
-	@echo "    build      build the bingo"
+	@echo "    build      build the go-v8"
 	@echo "    count      count the source code line"
 	@echo "    lint       golint check source code syntax"
 	@echo "    vet        go vet check source code bugs"
