@@ -2,7 +2,7 @@ package v8
 
 // #include <stdlib.h>
 // #include "v8_wrap.h"
-// #cgo CXXFLAGS: CXXFLAGS: -I${SRCDIR}/v8/include -std=c++11
+// #cgo CXXFLAGS: -I${SRCDIR}/v8/include -std=c++11
 // #cgo LDFLAGS: -L${SRCDIR}/v8/lib/linux_amd64 -lv8_libplatform -lv8_base -lv8_libbase -lv8_snapshot -licudata -licui18n -licuucx -licustubdata -lrt -ldl -pthread
 import "C"
 import "unsafe"
@@ -39,6 +39,12 @@ type Engine struct {
 	bindTypes map[reflect.Type]bindTypeInfo
 }
 
+// Init initialize the V8 platform.
+func Init() {
+	C.V8_Init()
+}
+
+// NewEngine create a new V8 engine.
 func NewEngine() *Engine {
 	self := C.V8_NewEngine()
 

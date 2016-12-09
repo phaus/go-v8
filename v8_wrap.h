@@ -68,6 +68,11 @@ typedef struct{
   void*   callback;
 } V8_AccessCheckCallbackInfo;
 
+/* 
+platform
+*/
+extern void V8_Init();
+
 /*
 engine
 */
