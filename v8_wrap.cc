@@ -229,15 +229,17 @@ public:
     virtual void Free(void *data, size_t) { free(data); }
 };
 
+static Platform* v8platform = NULL;
+
 /* 
 platform
 */
 void V8_Init() {
-	    // Initialize V8.
+	// Initialize V8.
     V8::InitializeICU();
     //V8::InitializeExternalStartupData(argv[0]);
-    Platform* platform = platform::CreateDefaultPlatform();
-    V8::InitializePlatform(platform);
+    v8platform = platform::CreateDefaultPlatform();
+    V8::InitializePlatform(v8platform);
     V8::Initialize();
 }
 
@@ -245,13 +247,6 @@ void V8_Init() {
 engine
 */
 void* V8_NewEngine() {
-    // Initialize V8.
-    V8::InitializeICU();
-    //V8::InitializeExternalStartupData(argv[0]);
-    Platform* platform = platform::CreateDefaultPlatform();
-    V8::InitializePlatform(platform);
-    V8::Initialize();
-
     ArrayBufferAllocator allocator;
     Isolate::CreateParams create_params;
     create_params.array_buffer_allocator = &allocator;
