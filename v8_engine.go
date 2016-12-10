@@ -5,8 +5,11 @@ package v8
 // #cgo CXXFLAGS: -I${SRCDIR}/v8/include -std=c++11
 // #cgo LDFLAGS: -L${SRCDIR}/v8/lib/linux_amd64 -lv8_libplatform -lv8_base -lv8_libbase -lv8_snapshot -licudata -licui18n -licuucx -licustubdata -lrt -ldl -pthread
 import "C"
-import "unsafe"
-import "runtime"
+import (
+	"runtime"
+	"unsafe"
+)
+
 import "reflect"
 
 var traceDispose = false
@@ -40,7 +43,7 @@ type Engine struct {
 }
 
 // Init initialize the V8 platform.
-func Init() {
+func init() {
 	C.V8_Init()
 }
 

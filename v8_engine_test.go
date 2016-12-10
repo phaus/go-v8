@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-var engine = NewEngine()
+var engine *Engine
 
 func init() {
 	// traceDispose = true
@@ -58,6 +58,20 @@ func rand_sched(max int) {
 	for j := rand.Intn(max); j > 0; j-- {
 		runtime.Gosched()
 	}
+}
+
+func setup() {
+	engine = NewEngine()
+}
+
+func shutdown() {
+}
+
+func TestMain(m *testing.M) {
+	setup()
+	code := m.Run()
+	shutdown()
+	os.Exit(code)
 }
 
 // Issue #40
