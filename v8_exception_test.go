@@ -3,7 +3,7 @@ package v8
 import "testing"
 import "runtime"
 
-func Test_MessageListener(t *testing.T) {
+func TestMessageListener(t *testing.T) {
 	id1 := engine.AddMessageListener(func(message *Message) {
 		t.Log("MessageListener(1):", message)
 	})
@@ -34,7 +34,7 @@ func Test_MessageListener(t *testing.T) {
 	})
 }
 
-func Test_ThrowException(t *testing.T) {
+func TestThrowException(t *testing.T) {
 	template := engine.NewObjectTemplate()
 	template.Bind("Call", func() {
 		engine.NewContext(nil).Scope(func(cs ContextScope) {
@@ -62,7 +62,7 @@ func Test_ThrowException(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_ThrowException2(t *testing.T) {
+func TestThrowException2(t *testing.T) {
 	template := engine.NewObjectTemplate()
 	template.Bind("Call", func() {
 		val := engine.NewObject()
@@ -98,7 +98,7 @@ func Test_ThrowException2(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_ThrowException2_Error(t *testing.T) {
+func TestThrowException2Error(t *testing.T) {
 	template := engine.NewObjectTemplate()
 	template.Bind("RangeCall", func() {
 		engine.NewContext(nil).Scope(func(cs ContextScope) {
@@ -152,7 +152,7 @@ func Test_ThrowException2_Error(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_TryCatch(t *testing.T) {
+func TestTryCatch(t *testing.T) {
 	engine.SetCaptureStackTraceForUncaughtExceptions(true, 1)
 	defer engine.SetCaptureStackTraceForUncaughtExceptions(false, 0)
 
@@ -192,7 +192,7 @@ func Test_TryCatch(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_TryCatch_WithScriptOrigin(t *testing.T) {
+func TestTryCatchWithScriptOrigin(t *testing.T) {
 	engine.SetCaptureStackTraceForUncaughtExceptions(true, 1)
 	defer engine.SetCaptureStackTraceForUncaughtExceptions(false, 0)
 
@@ -232,7 +232,7 @@ func Test_TryCatch_WithScriptOrigin(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_TryCatchException(t *testing.T) {
+func TestTryCatchException(t *testing.T) {
 	engine.SetCaptureStackTraceForUncaughtExceptions(true, 1)
 	defer engine.SetCaptureStackTraceForUncaughtExceptions(false, 0)
 
@@ -279,7 +279,7 @@ func Test_TryCatchException(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_TryCatchException_Custom(t *testing.T) {
+func TestTryCatchExceptionCustom(t *testing.T) {
 	engine.SetCaptureStackTraceForUncaughtExceptions(true, 1)
 	defer engine.SetCaptureStackTraceForUncaughtExceptions(false, 0)
 
@@ -332,7 +332,7 @@ func Test_TryCatchException_Custom(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_TryCatchException_Primitive(t *testing.T) {
+func TestTryCatchExceptionPrimitive(t *testing.T) {
 	engine.SetCaptureStackTraceForUncaughtExceptions(true, 1)
 	defer engine.SetCaptureStackTraceForUncaughtExceptions(false, 0)
 

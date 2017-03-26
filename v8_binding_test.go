@@ -4,7 +4,7 @@ import "reflect"
 import "testing"
 import "runtime"
 
-func Test_Bind_Variadic(t *testing.T) {
+func TestBindVariadic(t *testing.T) {
 	template := engine.NewObjectTemplate()
 
 	template.Bind("Call", func(arg1, arg2 string, args ...string) *Value {
@@ -52,7 +52,7 @@ func Test_Bind_Variadic(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_Bind_Function(t *testing.T) {
+func TestBindFunction(t *testing.T) {
 	template := engine.NewObjectTemplate()
 
 	goFunc1 := func(text string, obj *Object, callback *Function) {
@@ -90,7 +90,7 @@ type BindingTest struct {
 	Second uint32
 }
 
-func Test_Bind_Struct(t *testing.T) {
+func TestBindStruct(t *testing.T) {
 	template := engine.NewObjectTemplate()
 
 	template.Bind("BindingTest", BindingTest{})
@@ -116,7 +116,7 @@ func Test_Bind_Struct(t *testing.T) {
 	})
 }
 
-func Test_Bind_Integers(t *testing.T) {
+func TestBindIntegers(t *testing.T) {
 	template := engine.NewObjectTemplate()
 
 	template.Bind("BindingTest", BindingTest{})
@@ -151,7 +151,7 @@ func Test_Bind_Integers(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_Bind_MapArgument(t *testing.T) {
+func TestBindMapArgument(t *testing.T) {
 	template := engine.NewObjectTemplate()
 
 	template.Bind("Call", func(m map[string]string) string {
@@ -176,7 +176,7 @@ func Test_Bind_MapArgument(t *testing.T) {
 	}
 }
 
-func Test_Bind_InvalidMapArgument(t *testing.T) {
+func TestBindInvalidMapArgument(t *testing.T) {
 	template := engine.NewObjectTemplate()
 
 	template.Bind("Call", func(m map[string]string) string {
