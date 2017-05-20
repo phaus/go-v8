@@ -236,7 +236,8 @@ platform
 */
 void V8_Init() {
 	// Initialize V8.
-    V8::InitializeICU();
+    //V8::InitializeICU();
+	V8::InitializeICU("/home/saibing/git/go/src/github.com/saibing/go-v8/icusmdt57.dat");
     //V8::InitializeExternalStartupData(argv[0]);
     v8platform = platform::CreateDefaultPlatform();
     V8::InitializePlatform(v8platform);
