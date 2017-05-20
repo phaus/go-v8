@@ -54,7 +54,7 @@ func init() {
 	}()
 }
 
-func rand_sched(max int) {
+func randsched(max int) {
 	for j := rand.Intn(max); j > 0; j-- {
 		runtime.Gosched()
 	}
@@ -76,13 +76,13 @@ func TestMain(m *testing.M) {
 
 // Issue #40
 //
-func Test_EngineDispose(t *testing.T) {
+func TestEngineDispose(t *testing.T) {
 	_ = NewEngine()
 }
 
 // use one engine in different threads
 //
-func Test_ThreadSafe1(t *testing.T) {
+func TestThreadSafe1(t *testing.T) {
 	fail := false
 
 	wg := new(sync.WaitGroup)
