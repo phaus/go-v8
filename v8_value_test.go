@@ -3,7 +3,7 @@ package v8
 import "testing"
 import "runtime"
 
-func Test_Values(t *testing.T) {
+func TestValues(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 
 		if !engine.Undefined().IsUndefined() {

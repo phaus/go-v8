@@ -170,7 +170,7 @@ func TestBindMapArgument(t *testing.T) {
 		}
 	})
 
-	// t.Fatal() in context scopes causes dead locks of Test_ThreadSafeX in v8_engine_test.go.
+	// t.Fatal() in context scopes causes dead locks of TestThreadSafeX in v8_engine_test.go.
 	if errStr != "" {
 		t.Fatal(errStr)
 	}
@@ -196,7 +196,7 @@ func TestBindInvalidMapArgument(t *testing.T) {
 			}
 		})
 
-		// t.Fatal() in context scopes causes dead locks of Test_ThreadSafeX in v8_engine_test.go.
+		// t.Fatal() in context scopes causes dead locks of TestThreadSafeX in v8_engine_test.go.
 		if errStr != "" {
 			t.Fatal(errStr)
 		}

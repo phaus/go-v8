@@ -109,7 +109,7 @@ func TestThreadSafe1(t *testing.T) {
 
 // use one context in different threads
 //
-func Test_ThreadSafe2(t *testing.T) {
+func TestThreadSafe2(t *testing.T) {
 	fail := false
 	context := engine.NewContext(nil)
 
@@ -118,7 +118,7 @@ func Test_ThreadSafe2(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			context.Scope(func(cs ContextScope) {
-				rand_sched(200)
+				randsched(200)
 
 				script := engine.Compile([]byte("'Hello ' + 'World!'"), nil)
 				value := cs.Run(script)
@@ -139,7 +139,7 @@ func Test_ThreadSafe2(t *testing.T) {
 
 // use one script in different threads
 //
-func Test_ThreadSafe3(t *testing.T) {
+func TestThreadSafe3(t *testing.T) {
 	fail := false
 	script := engine.Compile([]byte("'Hello ' + 'World!'"), nil)
 
@@ -148,7 +148,7 @@ func Test_ThreadSafe3(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			engine.NewContext(nil).Scope(func(cs ContextScope) {
-				rand_sched(200)
+				randsched(200)
 
 				value := cs.Run(script)
 				result := value.ToString()
@@ -168,7 +168,7 @@ func Test_ThreadSafe3(t *testing.T) {
 
 // use one context and one script in different threads
 //
-func Test_ThreadSafe4(t *testing.T) {
+func TestThreadSafe4(t *testing.T) {
 	fail := false
 	script := engine.Compile([]byte("'Hello ' + 'World!'"), nil)
 	context := engine.NewContext(nil)
@@ -178,7 +178,7 @@ func Test_ThreadSafe4(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			context.Scope(func(cs ContextScope) {
-				rand_sched(200)
+				randsched(200)
 
 				value := cs.Run(script)
 				result := value.ToString()
@@ -198,7 +198,7 @@ func Test_ThreadSafe4(t *testing.T) {
 
 // ....
 //
-func Test_ThreadSafe6(t *testing.T) {
+func TestThreadSafe6(t *testing.T) {
 	var (
 		fail        = false
 		gonum       = 100
@@ -208,7 +208,7 @@ func Test_ThreadSafe6(t *testing.T) {
 
 	for i := 0; i < gonum; i++ {
 		go func() {
-			rand_sched(200)
+			randsched(200)
 
 			scriptChan <- engine.Compile([]byte("'Hello ' + 'World!'"), nil)
 		}()
@@ -216,7 +216,7 @@ func Test_ThreadSafe6(t *testing.T) {
 
 	for i := 0; i < gonum; i++ {
 		go func() {
-			rand_sched(200)
+			randsched(200)
 
 			contextChan <- engine.NewContext(nil)
 		}()
@@ -224,7 +224,7 @@ func Test_ThreadSafe6(t *testing.T) {
 
 	for i := 0; i < gonum; i++ {
 		go func() {
-			rand_sched(200)
+			randsched(200)
 
 			context := <-contextChan
 			script := <-scriptChan

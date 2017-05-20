@@ -3,7 +3,7 @@ package v8
 import "testing"
 import "runtime"
 
-func Test_InternalField(t *testing.T) {
+func TestInternalField(t *testing.T) {
 	iCache := make([]interface{}, 0)
 	ot := engine.NewObjectTemplate()
 	ot.SetInternalFieldCount(11)
@@ -24,7 +24,7 @@ func Test_InternalField(t *testing.T) {
 	context.SetPrivateData(nil)
 }
 
-func Test_FunctionTemplate(t *testing.T) {
+func TestFunctionTemplate(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		function := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
 			if info.Get(0).ToString() != "Hello World!" {
@@ -47,7 +47,7 @@ func Test_FunctionTemplate(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_Accessor(t *testing.T) {
+func TestAccessor(t *testing.T) {
 	// Object
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		var propertyValue int32 = 1234
@@ -135,7 +135,7 @@ func Test_Accessor(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_NamedPropertyHandler(t *testing.T) {
+func TestNamedPropertyHandler(t *testing.T) {
 	obj_template := engine.NewObjectTemplate()
 
 	var (
@@ -204,7 +204,7 @@ func Test_NamedPropertyHandler(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_IndexedPropertyHandler(t *testing.T) {
+func TestIndexedPropertyHandler(t *testing.T) {
 	obj_template := engine.NewObjectTemplate()
 
 	var (
@@ -272,7 +272,7 @@ func Test_IndexedPropertyHandler(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_ObjectConstructor(t *testing.T) {
+func TestObjectConstructor(t *testing.T) {
 	type MyClass struct {
 		name string
 	}

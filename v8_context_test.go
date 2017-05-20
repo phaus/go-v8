@@ -4,7 +4,7 @@ import "testing"
 import "runtime"
 import "io/ioutil"
 
-func Test_HelloWorld(t *testing.T) {
+func TestHelloWorld(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		if cs.Eval("'Hello ' + 'World!'").ToString() != "Hello World!" {
 			t.Fatal("result not match")
@@ -14,7 +14,7 @@ func Test_HelloWorld(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_Context(t *testing.T) {
+func TestContext(t *testing.T) {
 	script1 := engine.Compile([]byte("typeof(MyTestContext) === 'undefined';"), nil)
 	script2 := engine.Compile([]byte("MyTestContext = 1;"), nil)
 	script3 := engine.Compile([]byte("MyTestContext = MyTestContext + 7;"), nil)
@@ -82,7 +82,7 @@ func Test_Context(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_UnderscoreJS(t *testing.T) {
+func TestUnderscoreJS(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		code, err := ioutil.ReadFile("samples/underscore.js")
 

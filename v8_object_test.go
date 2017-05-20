@@ -3,7 +3,7 @@ package v8
 import "testing"
 import "runtime"
 
-func Test_Object(t *testing.T) {
+func TestObject(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		script := engine.Compile([]byte("a={};"), nil)
 		value := cs.Run(script)
@@ -154,7 +154,7 @@ func Test_Object(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_Array(t *testing.T) {
+func TestArray(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		script := engine.Compile([]byte("[1,2,3]"), nil)
 		value := cs.Run(script)

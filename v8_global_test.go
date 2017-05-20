@@ -2,11 +2,11 @@ package v8
 
 import "testing"
 
-func Test_GetVersion(t *testing.T) {
+func TestGetVersion(t *testing.T) {
 	t.Log(GetVersion())
 }
 
-func Test_Allocator(t *testing.T) {
+func TestAllocator(t *testing.T) {
 	UseDefaultArrayBufferAllocator()
 
 	script := engine.Compile([]byte(`

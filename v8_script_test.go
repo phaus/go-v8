@@ -3,7 +3,7 @@ package v8
 import "testing"
 import "runtime"
 
-func Test_ReturnValue(t *testing.T) {
+func TestReturnValue(t *testing.T) {
 	template := engine.NewObjectTemplate()
 
 	template.Bind("Call", func() *Value {

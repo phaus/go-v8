@@ -3,7 +3,7 @@ package v8
 import "testing"
 import "runtime"
 
-func Test_JSON(t *testing.T) {
+func TestJSON(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		json := `{"a":1,"b":2,"c":"xyz","e":true,"f":false,"g":null,"h":[4,5,6]}`
 

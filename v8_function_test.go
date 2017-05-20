@@ -2,7 +2,7 @@ package v8
 
 import "testing"
 
-func Test_NewFunction(t *testing.T) {
+func TestNewFunction(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 
 		result := engine.NewFunction(func(info FunctionCallbackInfo) {
@@ -24,7 +24,7 @@ func Test_NewFunction(t *testing.T) {
 	})
 }
 
-func Test_Function(t *testing.T) {
+func TestFunction(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		script := engine.Compile([]byte(`
 			a = function(x,y,z){
@@ -54,7 +54,7 @@ func Test_Function(t *testing.T) {
 	})
 }
 
-func Test_NewInstance(t *testing.T) {
+func TestNewInstance(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		script := engine.Compile([]byte(`
 			MyClass = function(x) {
