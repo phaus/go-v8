@@ -224,11 +224,11 @@ platform
 */
 void V8_Init() {
 	// Initialize V8.
-	V8::InitializeICUDefaultLocation("/home/saibing/git/go/src/github.com/saibing/go-v8/icudtl.dat");                                                                                                                                          
-    //V8::InitializeExternalStartupData();                                                                                                                                         
-	v8platform = platform::CreateDefaultPlatform();                                                                                                                             
-    V8::InitializePlatform(v8platform);                                                                                                                                                   
-    V8::Initialize();                    
+	V8::InitializeICUDefaultLocation("/home/saibing/git/go/src/github.com/saibing/go-v8/icudtl.dat"); 
+	//V8::InitializeExternalStartupData();
+	v8platform = platform::CreateDefaultPlatform();                                                                                           
+	V8::InitializePlatform(v8platform); 
+	V8::Initialize();                    
 }
 
 /*
@@ -245,7 +245,7 @@ void* V8_NewEngine() {
 	if (context.IsEmpty())
 		return NULL;
 
-	context->Enter();
+	//context->Enter();
 
 	return (void*)(new V8_Context(isolate, context));
 }
