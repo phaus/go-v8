@@ -117,11 +117,12 @@ public:
 	int64_t ownerId;
 };
 
-void FieldOwnerWeakCallback(const WeakCallbackData<Value, V8_FieldOwnerInfo> &data) {
+//TODO: dengsaibing
+/*void FieldOwnerWeakCallback(const WeakCallbackData<Value, V8_FieldOwnerInfo> &data) {
 	V8_FieldOwnerInfo* info = data.GetParameter();
 	go_field_owner_weak_callback(info->engine, info->ownerId);
 	delete info;
-}
+}*/
 
 class V8_Value {
 public:
@@ -139,7 +140,8 @@ public:
 		if (fieldOwnerInfo == NULL) {
 			self.Reset();
 		} else {
-			self.SetWeak<V8_FieldOwnerInfo>(fieldOwnerInfo, FieldOwnerWeakCallback);
+			//TODO: dengsaibing
+			//self.SetWeak<V8_FieldOwnerInfo>(fieldOwnerInfo, FieldOwnerWeakCallback);
 		}
 		context_handler.Reset();
 	}
@@ -214,20 +216,6 @@ void* new_V8_Value(V8_Context* context, Handle<Value> value) {
 	return (void*)new V8_Value(context, value);
 }
 
-class ArrayBufferAllocator : public v8::ArrayBuffer::Allocator
-{
-public:
-    virtual void *Allocate(size_t length)
-    {   
-        void *data = AllocateUninitialized(length);
-        return data == NULL ? data : memset(data, 0, length);
-    }   
-    virtual void *AllocateUninitialized(size_t length)
-    {   
-        return malloc(length);
-    }   
-    virtual void Free(void *data, size_t) { free(data); }
-};
 
 static Platform* v8platform = NULL;
 
@@ -236,21 +224,19 @@ platform
 */
 void V8_Init() {
 	// Initialize V8.
-    //V8::InitializeICU();
-	V8::InitializeICU("/home/saibing/git/go/src/github.com/saibing/go-v8/icusmdt57.dat");
-    //V8::InitializeExternalStartupData(argv[0]);
-    v8platform = platform::CreateDefaultPlatform();
-    V8::InitializePlatform(v8platform);
-    V8::Initialize();
+	V8::InitializeICUDefaultLocation("/home/saibing/git/go/src/github.com/saibing/go-v8/icudtl.dat");                                                                                                                                          
+    //V8::InitializeExternalStartupData();                                                                                                                                         
+	v8platform = platform::CreateDefaultPlatform();                                                                                                                             
+    V8::InitializePlatform(v8platform);                                                                                                                                                   
+    V8::Initialize();                    
 }
 
 /*
 engine
 */
 void* V8_NewEngine() {
-    ArrayBufferAllocator allocator;
     Isolate::CreateParams create_params;
-    create_params.array_buffer_allocator = &allocator;
+    create_params.array_buffer_allocator = v8::ArrayBuffer::Allocator::NewDefaultAllocator();
 	ISOLATE_SCOPE(Isolate::New(create_params));
 
 	HandleScope handle_scope(isolate);
@@ -907,29 +893,35 @@ void* V8_Object_GetInternalField(void* value, int index) {
 int V8_Object_SetHiddenValue(void* value, const char* key ,void* prop_value){
 	VALUE_SCOPE(value);
 	Local<Object> obj = Local<Object>::Cast(local_value);
-	return obj -> SetHiddenValue(
+	//TODO: dengsaibing
+	/*return obj -> SetHiddenValue(
 		String::NewFromUtf8(isolate, key, String::kInternalizedString),
 		Local<Value>::New(isolate, static_cast<V8_Value*>(prop_value)->self)
-	);
+	);*/
+	return 0;
 }
 
 void* V8_Object_GetHiddenValue(void* value, const char* key){
 	VALUE_SCOPE(value);
 	Local<Object> obj = Local<Object>::Cast(local_value);
-	return new_V8_Value(
+	//TODO: dengsaibing
+	/*return new_V8_Value(
 		V8_Current_Context(isolate),
 		obj->GetHiddenValue(
 			String::NewFromUtf8(isolate, key, String::kInternalizedString)
 		)
-	);
+	);*/
 }
 
 int V8_Object_DeleteHiddenValue(void* value, const char* key){
 	VALUE_SCOPE(value);
 	Local<Object> obj = Local<Object>::Cast(local_value);
-	return obj -> DeleteHiddenValue(
+	//TODO: dengsaibing
+	/*return obj -> DeleteHiddenValue(
 		String::NewFromUtf8(isolate, key, String::kInternalizedString)
-	);
+	);*/
+
+	return 0;
 }
 
 void V8_Object_SetAlignedPointerInInternalField(void* value, int index, void* value_ptr){
@@ -1870,11 +1862,12 @@ void V8_ObjectTemplate_SetAccessCheckCallbacks(
 	if (callback_info.IsEmpty())
 		return;
 
-	local_template->SetAccessCheckCallbacks(
+	//TODO: dengsaibing
+	/*local_template->SetAccessCheckCallbacks(
 			V8_NamedSecurityCallback,
 			V8_IndexedSecurityCallback,
 			callback_info
-	);
+	);*/
 }
 
 /*
