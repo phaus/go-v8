@@ -8,7 +8,7 @@ package main
 v8_import_plugin(log);
 */
 import "C"
-import "github.com/idada/v8.go"
+import "github.com/saibing/go-v8"
 
 func main() {
 	engine := v8.NewEngine()
