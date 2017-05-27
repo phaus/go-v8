@@ -3,3 +3,8 @@
 /v8.pc
 
 .vscode/
+
+*.a
+*.so
+*.exe
+*.dll
