@@ -217,21 +217,6 @@ void* new_V8_Value(V8_Context* context, Handle<Value> value) {
 }
 
 
-class ArrayBufferAllocator : public v8::ArrayBuffer::Allocator		
-{		
-public:		
-    virtual void *Allocate(size_t length)		
-    {   		
-         void *data = AllocateUninitialized(length);		
-        return data == NULL ? data : memset(data, 0, length);		
-     }   		
-     virtual void *AllocateUninitialized(size_t length)		
-     {   		
-         return malloc(length);		
-     }   		
-     virtual void Free(void *data, size_t) { free(data); }		
- };
-
 static Platform* v8platform = NULL;
 
 /* 
@@ -239,7 +224,7 @@ platform
 */
 void V8_Init() {
 	// Initialize V8.
-	V8::InitializeICUDefaultLocation("/home/saibing/git/go/src/github.com/saibing/go-v8/icudtl.dat"); 
+	V8::InitializeICUDefaultLocation("icudtl.dat"); 
 	//V8::InitializeExternalStartupData();
 	v8platform = platform::CreateDefaultPlatform();                                                                                           
 	V8::InitializePlatform(v8platform); 
@@ -652,7 +637,15 @@ script
 void* V8_Compile(void* engine, const char* code, int length, void* go_script_origin) {
 	ENGINE_SCOPE(engine);
 
+	// Create a handle scope to keep the temporary object references.
 	HandleScope handle_scope(isolate);
+
+	Local<Context> local_context = Local<Context>::New(isolate, the_engine->self);
+
+	// Enter this processor's context so all the remaining operations
+	// take place there                                              
+	Context::Scope context_scope(local_context);                           
+
 
 	if (go_script_origin) {
 		char * cstr = go_script_origin_get_name(go_script_origin);
@@ -730,6 +723,13 @@ int V8_Value_IsArray(void* value) {
 
 int V8_Value_IsObject(void* value) {
 	VALUE_SCOPE(value);
+
+	// Local<Context> local_context = Local<Context>::New(isolate, the_value->context_handler);
+                                                                               
+  	// // Enter this processor's context so all the remaining operations             
+ 	// // take place there                                                           
+ 	// Context::Scope context_scope(local_context);                                  
+
 	return local_value->IsObject();
 }
 
@@ -1160,6 +1160,12 @@ void V8_AccessorSetterCallback(Local<String> property, Local<Value> value, const
 void V8_Object_SetAccessor(void *value, const char* key, int key_length, void* getter, void* setter, void* data, int attribs) {
 	VALUE_SCOPE(value);
 
+	Local<Context> local_context = Local<Context>::New(isolate, the_value->context_handler);
+
+	// Enter this processor's context so all the remaining operations
+	// take place there                                              
+	Context::Scope context_scope(local_context);  
+
 	Handle<Array> callback_info = Array::New(isolate, OTA_Num);
 	callback_info->Set(OTA_Context, External::New(isolate, (void*)V8_Current_Context(isolate)));
 	callback_info->Set(OTA_Getter, External::New(isolate, getter));
@@ -1580,7 +1586,16 @@ object template
 */
 void* V8_NewObjectTemplate(void* engine) {
 	ENGINE_SCOPE(engine);
+	
+	// Create a handle scope to keep the temporary object references.
 	HandleScope handle_scope(isolate);
+
+	Local<Context> local_context = Local<Context>::New(isolate, the_engine->self);
+
+	// Enter this processor's context so all the remaining operations
+	// take place there                                              
+	Context::Scope context_scope(local_context);  
+
 	Handle<ObjectTemplate> tpl = ObjectTemplate::New(isolate);
 	if (tpl.IsEmpty())
 		return NULL;
@@ -1619,6 +1634,12 @@ void* V8_ObjectTemplate_NewInstance(void* engine, void* tpl) {
 // sync with V8_Object_SetAccessor
 void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, void* getter, void* setter, void* data, int attribs) {
 	OBJECT_TEMPLATE_HANDLE_SCOPE(tpl);
+
+	Local<Context> local_context = Local<Context>::New(isolate, the_template->engine->self);
+
+	// Enter this processor's context so all the remaining operations
+	// take place there                                              
+	Context::Scope context_scope(local_context);  
 
 	Handle<Array> callback_info = Array::New(isolate, 5);
 	callback_info->Set(0, External::New(isolate, (void*)the_template->engine));
@@ -1893,6 +1914,15 @@ void* V8_NewFunctionTemplate(void* engine, void* callback, void* data) {
 
 	HandleScope scope(isolate);
 
+	// Create a handle scope to keep the temporary object references.
+	HandleScope handle_scope(isolate);
+
+	Local<Context> local_context = Local<Context>::New(isolate, the_engine->self);
+
+	// Enter this processor's context so all the remaining operations
+	// take place there                                              
+	Context::Scope context_scope(local_context); 
+
 	Handle<Array> callback_data = Array::New(isolate, 3);
 
 	if (callback_data.IsEmpty())
@@ -1986,6 +2016,16 @@ void V8_MessageCallback(Handle<Message> message, Handle<Value> error) {
 void V8_EnableMessageListener(void* engine, void* go_engine, int enable) {
 	ENGINE_SCOPE(engine);
 
+	// Create a handle scope to keep the temporary object references.             
+	HandleScope handle_scope(isolate);                                            
+                                                                              
+	Local<Context> local_context = Local<Context>::New(isolate, the_engine->self);
+                                                                              
+	// Enter this processor's context so all the remaining operations             
+	// take place there                                                           
+	Context::Scope context_scope(local_context);                                  
+
+
 	if (enable == 1) {
 		HandleScope scope(isolate);
 		Handle<Array> args = Array::New(isolate, 1);
@@ -1998,6 +2038,14 @@ void V8_EnableMessageListener(void* engine, void* go_engine, int enable) {
 
 void V8_SetCaptureStackTraceForUncaughtExceptions(void* engine, int capture, int frame_limit) {
 	ENGINE_SCOPE(engine);
+		// Create a handle scope to keep the temporary object references.             
+	HandleScope handle_scope(isolate);                                            
+                                                                              
+	Local<Context> local_context = Local<Context>::New(isolate, the_engine->self);
+                                                                              
+	// Enter this processor's context so all the remaining operations             
+	// take place there                                                           
+	Context::Scope context_scope(local_context);   
 	V8::SetCaptureStackTraceForUncaughtExceptions(capture, frame_limit);
 }
 

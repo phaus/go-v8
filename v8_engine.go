@@ -2,8 +2,8 @@ package v8
 
 // #include <stdlib.h>
 // #include "v8_wrap.h"
-// #cgo CXXFLAGS: -I${SRCDIR}/v8/include -std=c++11 -fno-rtti
-// #cgo LDFLAGS: -L${SRCDIR}/v8/lib/linux_amd64 -lv8_libplatform -lv8_builtins_generators -lv8_builtins_setup -lv8_base -lv8_libbase -lv8_snapshot -licudata -licui18n -lv8_libsampler -licuuc -ldl -pthread
+// #cgo CXXFLAGS: -I${SRCDIR}/v8/include -std=c++11
+// #cgo LDFLAGS: -L${SRCDIR}/v8/lib/linux_amd64 -lv8 -lv8_libplatform -lv8_libbase -licui18n -licuuc -ldl -pthread
 import "C"
 import (
 	"runtime"

@@ -7,18 +7,20 @@ import "runtime"
 func TestBindVariadic(t *testing.T) {
 	template := engine.NewObjectTemplate()
 
-	template.Bind("Call", func(arg1, arg2 string, args ...string) *Value {
-		val := engine.NewObject()
-		obj := val.ToObject()
-		obj.SetProperty("a1", engine.NewString(arg1))
-		obj.SetProperty("a2", engine.NewString(arg2))
-		array := engine.NewArray(len(args))
-		arrayObj := array.ToObject()
-		for i, arg := range args {
-			arrayObj.SetElement(i, engine.NewString(arg))
-		}
-		obj.SetProperty("as", array)
-		return val
+	engine.NewContext(nil).Scope(func(cs ContextScope) {
+		template.Bind("Call", func(arg1, arg2 string, args ...string) *Value {
+			val := engine.NewObject()
+			obj := val.ToObject()
+			obj.SetProperty("a1", engine.NewString(arg1))
+			obj.SetProperty("a2", engine.NewString(arg2))
+			array := engine.NewArray(len(args))
+			arrayObj := array.ToObject()
+			for i, arg := range args {
+				arrayObj.SetElement(i, engine.NewString(arg))
+			}
+			obj.SetProperty("as", array)
+			return val
+		})
 	})
 
 	engine.NewContext(template).Scope(func(cs ContextScope) {
@@ -68,9 +70,11 @@ func TestBindFunction(t *testing.T) {
 		t.Logf("print(%s, %s)", text1, text2)
 	}
 
-	template.Bind("fetch", goFunc1)
+	engine.NewContext(nil).Scope(func(cs ContextScope) {
+		template.Bind("fetch", goFunc1)
 
-	template.Bind("print", goFunc2)
+		template.Bind("print", goFunc2)
+	})
 
 	engine.NewContext(template).Scope(func(cs ContextScope) {
 		cs.Eval(`
@@ -93,10 +97,12 @@ type BindingTest struct {
 func TestBindStruct(t *testing.T) {
 	template := engine.NewObjectTemplate()
 
-	template.Bind("BindingTest", BindingTest{})
+	engine.NewContext(nil).Scope(func(cs ContextScope) {
+		template.Bind("BindingTest", BindingTest{})
 
-	template.Bind("Test", func() BindingTest {
-		return BindingTest{-1, 1}
+		template.Bind("Test", func() BindingTest {
+			return BindingTest{-1, 1}
+		})
 	})
 
 	engine.NewContext(template).Scope(func(cs ContextScope) {
@@ -119,7 +125,9 @@ func TestBindStruct(t *testing.T) {
 func TestBindIntegers(t *testing.T) {
 	template := engine.NewObjectTemplate()
 
-	template.Bind("BindingTest", BindingTest{})
+	engine.NewContext(nil).Scope(func(cs ContextScope) {
+		template.Bind("BindingTest", BindingTest{})
+	})
 
 	engine.NewContext(template).Scope(func(cs ContextScope) {
 		cs.Eval(`
@@ -154,12 +162,14 @@ func TestBindIntegers(t *testing.T) {
 func TestBindMapArgument(t *testing.T) {
 	template := engine.NewObjectTemplate()
 
-	template.Bind("Call", func(m map[string]string) string {
-		if m != nil {
-			return m["key"]
-		} else {
-			return "nil"
-		}
+	engine.NewContext(nil).Scope(func(cs ContextScope) {
+		template.Bind("Call", func(m map[string]string) string {
+			if m != nil {
+				return m["key"]
+			} else {
+				return "nil"
+			}
+		})
 	})
 
 	var errStr string
@@ -179,12 +189,14 @@ func TestBindMapArgument(t *testing.T) {
 func TestBindInvalidMapArgument(t *testing.T) {
 	template := engine.NewObjectTemplate()
 
-	template.Bind("Call", func(m map[string]string) string {
-		if m != nil {
-			return m["key"]
-		} else {
-			return "nil"
-		}
+	engine.NewContext(nil).Scope(func(cs ContextScope) {
+		template.Bind("Call", func(m map[string]string) string {
+			if m != nil {
+				return m["key"]
+			} else {
+				return "nil"
+			}
+		})
 	})
 
 	for _, arg := range []string{"", "true", "111", `"aaa"`} {

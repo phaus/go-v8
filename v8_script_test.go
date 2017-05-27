@@ -50,10 +50,56 @@ func TestTypescript(t *testing.T) {
 	template := engine.NewObjectTemplate()
 
 	engine.NewContext(template).Scope(func(cs ContextScope) {
-		script := engine.Compile(code, nil)
+		script1 := engine.Compile(code, nil)
 
-		retVal := cs.Run(script)
-		fmt.Println(retVal)
+		cs.Run(script1)
+
+		script2 := engine.Compile([]byte(`"use strict";
+		function _go_transpile(source) {
+    		var result = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } });
+    		return result.outputText;
+		}`), nil)
+
+		cs.Run(script2)
+
+		script3 := engine.Compile([]byte(`
+			f = _go_transpile;
+		`), nil)
+
+		value := cs.Run(script3)
+
+		if value.IsFunction() == false {
+			t.Fatal("value not a function")
+		}
+
+		result := value.ToFunction().Call(
+			engine.NewString(
+				`class Greeter {
+    greeting: string;
+    constructor(message: string) {
+        this.greeting = message;
+    }
+    greet() {
+        return "Hello, " + this.greeting;
+    }
+}
+let greeter = new Greeter("world");`))
+
+		fmt.Println(result)
+
+		result = value.ToFunction().Call(engine.NewString(
+			`class Point {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+  toString() {
+    return '(' + this.x + ', ' + this.y + ')';
+  }
+}`))
+
+		fmt.Println(result)
+
 	})
 
 	runtime.GC()
