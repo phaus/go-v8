@@ -12,9 +12,9 @@ import (
 
 import "reflect"
 
-var traceDispose = false
+var traceDispose = true
 
-// Represents an isolated instance of the V8 engine.
+// Engine Represents an isolated instance of the V8 engine.
 // Objects from one engine must not be used in other engine.
 // Not thred safe!
 type Engine struct {
