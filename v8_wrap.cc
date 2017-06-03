@@ -816,11 +816,25 @@ int32_t V8_Value_ToInt32(void* value) {
 char* V8_Value_ToString(void* value) {
 	VALUE_SCOPE(value);
 
-	Handle<String> string = local_value->ToString();
+	/*Handle<String> string = local_value->ToString();
 	char* str = (char*)malloc(string->Length() + 1);
-	string->WriteUtf8(str);
+	string->WriteUtf8(str);*/
+    String::Utf8Value result(local_value);
+    size_t len = result.length();
+    
+    if (len <= 0) {
+        return NULL;
+    }
 
-	return str;
+    void* out = malloc(len + 1);
+    if (out == NULL) {
+        return NULL;
+    }
+
+    strcpy((char*)out, ToCString(result));
+
+
+	return (char*)out;
 }
 
 void* V8_Undefined(void* engine) {
