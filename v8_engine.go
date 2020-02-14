@@ -1,7 +1,11 @@
 package v8
 
-// #include <stdlib.h>
-// #include "v8_wrap.h"
+/*
+#cgo pkg-config: v8.pc
+#include "v8_wrap.h"
+#include <stdlib.h>
+*/
+
 import "C"
 import (
 	"runtime"
